@@ -427,17 +427,19 @@
     </div>
 
     <script>
-        // Configuração do Supabase
+        // CONFIGURAÇÃO SUPABASE - VERIFIQUE SE AS CREDENCIAIS ESTÃO CORRETAS
         const SUPABASE_URL = 'https://jumfigqlnqplbpokqhvj.supabase.co'
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE'
 
-        // Criar cliente Supabase
+        // Criar cliente Supabase com configuração de sessão FORTALECIDA
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
             auth: {
-                persistSession: true,
-                storageKey: 'admin-session',
-                storage: window.localStorage,
-                autoRefreshToken: true
+                persistSession: true,           // Mantém a sessão
+                storageKey: 'admin-session',     // Chave única para o storage
+                storage: window.localStorage,    // Força uso do localStorage
+                autoRefreshToken: true,          // Atualiza token automaticamente
+                detectSessionInUrl: true,        // Detecta sessão na URL
+                flowType: 'pkce'                  // Usa fluxo PKCE para maior segurança
             }
         })
 
@@ -447,35 +449,29 @@
         const conteudo = document.getElementById('conteudo')
         const userEmail = document.getElementById('userEmail')
 
-        // Função para carregar dados de exemplo (você pode substituir pelos dados reais do banco)
-        async function carregarDados() {
-            try {
-                // Aqui você faria as consultas reais ao Supabase
-                // Por enquanto, vamos usar dados de exemplo
-                document.getElementById('statTimes').textContent = '12'
-                document.getElementById('statJogadores').textContent = '156'
-                document.getElementById('statPartidas').textContent = '48'
-                document.getElementById('statGols').textContent = '124'
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error)
-            }
-        }
-
-        // Verificar autenticação
+        // Função principal de verificação de autenticação
         async function verificarAutenticacao() {
             try {
+                console.log('Verificando autenticação...')
+                
+                // Tentar obter a sessão atual
                 const { data: { session }, error } = await supabase.auth.getSession()
                 
-                if (error) throw error
+                if (error) {
+                    console.error('Erro ao obter sessão:', error)
+                    throw error
+                }
+
+                console.log('Sessão:', session ? 'Encontrada' : 'Não encontrada')
 
                 if (!session) {
-                    console.log('Não logado, redirecionando para login')
-                    window.location.href = '/'
+                    console.log('Sem sessão, redirecionando para login...')
+                    window.location.replace('/')
                     return
                 }
 
-                // Usuário está logado
-                console.log('Usuário logado:', session.user.email)
+                // Se chegou aqui, está logado
+                console.log('Usuário autenticado:', session.user.email)
                 
                 // Mostrar email do usuário
                 userEmail.textContent = session.user.email
@@ -485,36 +481,83 @@
                 navbar.style.display = 'flex'
                 conteudo.style.display = 'block'
 
-                // Carregar dados
-                await carregarDados()
+                // Carregar dados (opcional)
+                carregarDados()
 
             } catch (error) {
                 console.error('Erro na verificação:', error)
-                window.location.href = '/'
+                // Em caso de erro, tentar redirecionar após 2 segundos
+                setTimeout(() => {
+                    window.location.replace('/')
+                }, 2000)
+            }
+        }
+
+        // Função para carregar dados (você pode implementar com dados reais depois)
+        async function carregarDados() {
+            try {
+                // Aqui você faria consultas ao Supabase
+                // Por enquanto, dados de exemplo
+                document.getElementById('statTimes').textContent = '12'
+                document.getElementById('statJogadores').textContent = '156'
+                document.getElementById('statPartidas').textContent = '48'
+                document.getElementById('statGols').textContent = '124'
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error)
             }
         }
 
         // Função de logout
         async function sair() {
             try {
+                console.log('Fazendo logout...')
                 await supabase.auth.signOut()
-                window.location.href = '/'
+                // Limpar qualquer dado de sessão manualmente
+                localStorage.removeItem('admin-session')
+                window.location.replace('/')
             } catch (error) {
                 console.error('Erro ao sair:', error)
                 alert('Erro ao fazer logout. Tente novamente.')
             }
         }
 
-        // Verificar autenticação quando a página carregar
-        document.addEventListener('DOMContentLoaded', verificarAutenticacao)
+        // EXPOR FUNÇÃO SAIR PARA O ESCOPO GLOBAL (para o onclick funcionar)
+        window.sair = sair
 
-        // Verificar periodicamente se a sessão ainda é válida (a cada 5 minutos)
-        setInterval(async () => {
+        // Verificar autenticação quando a página carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Página carregada, verificando autenticação...')
+            verificarAutenticacao()
+        })
+
+        // Verificação de segurança adicional: após 1 segundo, verificar novamente
+        setTimeout(async () => {
             const { data: { session } } = await supabase.auth.getSession()
-            if (!session) {
-                window.location.href = '/'
+            if (!session && window.location.pathname !== '/') {
+                console.log('Sessão expirou, redirecionando...')
+                window.location.replace('/')
             }
-        }, 300000) // 5 minutos
+        }, 1000)
+
+        // Monitorar mudanças na autenticação
+        supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Evento de autenticação:', event)
+            
+            if (event === 'SIGNED_OUT') {
+                window.location.replace('/')
+            }
+            
+            if (event === 'TOKEN_REFRESHED') {
+                console.log('Token atualizado com sucesso')
+            }
+            
+            if (event === 'SIGNED_IN' && window.location.pathname === '/dashboard.html') {
+                console.log('Usuário logado no dashboard')
+            }
+        })
+
+        // Para debug: mostrar o localStorage
+        console.log('LocalStorage:', localStorage.getItem('admin-session'))
     </script>
 </body>
 </html>
