@@ -2,252 +2,327 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Campeonato</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>Login Supabase - Completo</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --bg: #0a0a0f;
-            --surface: #13131a;
-            --border: #2a2a38;
-            --accent: #4f6ef7;
-            --accent-glow: rgba(79,110,247,0.25);
-            --text: #e8e8f0;
-            --muted: #6b6b80;
-            --error: #f74f4f;
-            --success: #4ff79a;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg); color: var(--text);
-            min-height: 100vh; display: flex;
-            align-items: center; justify-content: center;
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
         }
-        body::before {
-            content: ''; position: fixed; inset: 0;
-            background-image:
-                linear-gradient(rgba(79,110,247,0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(79,110,247,0.04) 1px, transparent 1px);
-            background-size: 40px 40px; pointer-events: none;
-        }
-        body::after {
-            content: ''; position: fixed; top: -200px; left: 50%;
-            transform: translateX(-50%); width: 600px; height: 600px;
-            background: radial-gradient(circle, rgba(79,110,247,0.12) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        .card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 20px; padding: 48px 44px; width: 100%; max-width: 420px;
-            position: relative; z-index: 1;
-            box-shadow: 0 0 0 1px rgba(79,110,247,0.1), 0 40px 80px rgba(0,0,0,0.4);
-            animation: rise 0.5s cubic-bezier(0.16,1,0.3,1) both;
-        }
-        @keyframes rise {
-            from { opacity: 0; transform: translateY(24px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: rgba(79,110,247,0.12); border: 1px solid rgba(79,110,247,0.25);
-            color: var(--accent); font-size: 11px; font-weight: 600;
-            letter-spacing: 1.5px; text-transform: uppercase;
-            padding: 5px 12px; border-radius: 100px; margin-bottom: 28px;
-        }
-        .badge::before {
-            content: ''; width: 6px; height: 6px;
-            background: var(--accent); border-radius: 50%; box-shadow: 0 0 6px var(--accent);
-        }
-        h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
-        .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 36px; line-height: 1.5; }
-        .field { margin-bottom: 16px; }
-        label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
         input {
-            width: 100%; background: var(--bg); border: 1px solid var(--border);
-            border-radius: 10px; padding: 12px 16px; color: var(--text);
-            font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
-        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-        input::placeholder { color: var(--muted); }
-        .btn {
-            width: 100%; background: var(--accent); color: white; border: none;
-            border-radius: 10px; padding: 13px; font-family: 'DM Sans', sans-serif;
-            font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px;
-            transition: all 0.2s; position: relative; overflow: hidden;
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            margin: 10px 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
         }
-        .btn:hover:not(:disabled) { background: #3d5ce8; box-shadow: 0 8px 24px var(--accent-glow); transform: translateY(-1px); }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-text { transition: opacity 0.2s; }
-        .btn.loading .btn-text { opacity: 0; }
-        .spinner {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 18px; height: 18px;
-            border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
-            border-radius: 50%; animation: spin 0.7s linear infinite;
-            opacity: 0; transition: opacity 0.2s;
+        button:hover {
+            background-color: #45a049;
         }
-        .btn.loading .spinner { opacity: 1; }
-        @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-        .msg {
-            margin-top: 14px; padding: 10px 14px; border-radius: 8px;
-            font-size: 13px; font-weight: 500; display: none; align-items: center; gap: 8px;
+        #logoutBtn {
+            background-color: #f44343;
         }
-        .msg.error   { display: flex; background: rgba(247,79,79,0.1);  border: 1px solid rgba(247,79,79,0.25);  color: var(--error); }
-        .msg.success { display: flex; background: rgba(79,247,154,0.1); border: 1px solid rgba(79,247,154,0.25); color: var(--success); }
-        .divider { border: none; border-top: 1px solid var(--border); margin: 28px 0 20px; }
-        .register-link { text-align: center; font-size: 13px; color: var(--muted); }
-        .register-link a { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
-        #registerForm { display: none; }
-        #registerForm.active { display: block; }
-        #loginForm.hidden { display: none; }
+        #logoutBtn:hover {
+            background-color: #d32f2f;
+        }
+        #forgotPasswordBtn {
+            background-color: #ff9800;
+        }
+        #forgotPasswordBtn:hover {
+            background-color: #f57c00;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        #userInfo {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            text-align: left;
+            display: none;
+        }
+        #loginForm {
+            display: block;
+        }
+        #forgotPasswordForm {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .link-button {
+            background: none;
+            border: none;
+            color: #0066cc;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .link-button:hover {
+            color: #004499;
+            background: none;
+        }
     </style>
 </head>
 <body>
-<div class="card">
-    <div class="badge">⚽ Campeonato</div>
-
+    <h2>Login / Cadastro</h2>
+    
+    <!-- Formulário de Login (mostra quando deslogado) -->
     <div id="loginForm">
-        <h1>Bem-vindo de volta</h1>
-        <p class="subtitle">Entre com sua conta para acessar o painel.</p>
-        <div class="field">
-            <label>E-mail</label>
-            <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
-        </div>
-        <div class="field">
-            <label>Senha</label>
-            <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
-        </div>
-        <button class="btn" id="btnLogin" onclick="fazerLogin()">
-            <span class="btn-text">Entrar</span>
-            <div class="spinner"></div>
-        </button>
-        <div class="msg" id="loginMsg"></div>
-        <hr class="divider">
-        <p class="register-link">Não tem conta? <a onclick="alternarForm('register')">Criar conta</a></p>
+        <input type="email" id="email" placeholder="E-mail" /><br>
+        <input type="password" id="password" placeholder="Senha" /><br>
+        <button onclick="login()">Login</button>
+        <button onclick="signUp()">Cadastro</button>
+        <br>
+        <button class="link-button" onclick="showForgotPassword()">Esqueci minha senha</button>
     </div>
 
-    <div id="registerForm">
-        <h1>Criar conta</h1>
-        <p class="subtitle">Cadastre-se para acessar o sistema.</p>
-        <div class="field">
-            <label>E-mail</label>
-            <input type="email" id="regEmail" placeholder="seu@email.com" autocomplete="email">
-        </div>
-        <div class="field">
-            <label>Senha</label>
-            <input type="password" id="regPassword" placeholder="mínimo 6 caracteres" autocomplete="new-password">
-        </div>
-        <div class="field">
-            <label>Confirmar senha</label>
-            <input type="password" id="regPasswordConfirm" placeholder="••••••••">
-        </div>
-        <button class="btn" id="btnRegister" onclick="cadastrar()">
-            <span class="btn-text">Criar conta</span>
-            <div class="spinner"></div>
-        </button>
-        <div class="msg" id="registerMsg"></div>
-        <hr class="divider">
-        <p class="register-link">Já tem conta? <a onclick="alternarForm('login')">Fazer login</a></p>
+    <!-- Formulário de Recuperação de Senha -->
+    <div id="forgotPasswordForm">
+        <h3>Recuperar Senha</h3>
+        <p>Digite seu e-mail para receber instruções de recuperação:</p>
+        <input type="email" id="resetEmail" placeholder="Seu e-mail" /><br>
+        <button onclick="resetPassword()" style="background-color: #ff9800;">Enviar instruções</button>
+        <br>
+        <button class="link-button" onclick="showLogin()">Voltar ao login</button>
     </div>
-</div>
 
-<script>
-    const SUPABASE_URL = 'https://jumfigqlnqplbpokqhvj.supabase.co'
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE'
+    <!-- Informações do usuário (mostra quando logado) -->
+    <div id="userInfo">
+        <h3>Usuário Logado</h3>
+        <p><strong>Email:</strong> <span id="userEmail"></span></p>
+        <p><strong>ID:</strong> <span id="userId"></span></p>
+        <p><strong>Último acesso:</strong> <span id="lastAccess"></span></p>
+        <button id="logoutBtn" onclick="logout()">Sair</button>
+    </div>
+    
+    <!-- Div para mostrar mensagens -->
+    <div id="message" class="message"></div>
 
-    // SEM storageKey customizado — usa a chave padrão do Supabase
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    <script>
+        // Configuração do Supabase
+        const supabaseUrl = 'https://jumfigqlnqplbpokqhvj.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE';
+        
+        // Criar cliente Supabase
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // Se já logado, vai pro dashboard
-    sb.auth.getSession().then(({ data: { session } }) => {
-        if (session) window.location.replace('/dashboard')
-    })
-
-    function alternarForm(modo) {
-        document.getElementById('loginForm').classList.toggle('hidden', modo === 'register')
-        document.getElementById('registerForm').classList.toggle('active', modo === 'register')
-    }
-
-    function setLoading(btn, on) {
-        btn.disabled = on
-        btn.classList.toggle('loading', on)
-    }
-
-    function showMsg(id, texto, tipo) {
-        const el = document.getElementById(id)
-        el.textContent = texto
-        el.className = 'msg ' + tipo
-    }
-
-    async function fazerLogin() {
-        const email = document.getElementById('loginEmail').value.trim()
-        const senha = document.getElementById('loginPassword').value
-        const btn   = document.getElementById('btnLogin')
-
-        if (!email || !senha) {
-            showMsg('loginMsg', 'Preencha e-mail e senha.', 'error')
-            return
+        // Funções para alternar entre formulários
+        function showForgotPassword() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('forgotPasswordForm').style.display = 'block';
+            document.getElementById('userInfo').style.display = 'none';
         }
 
-        setLoading(btn, true)
-        document.getElementById('loginMsg').className = 'msg'
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('forgotPasswordForm').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'none';
+        }
 
-        const { data, error } = await sb.auth.signInWithPassword({ email, password: senha })
+        // Função para mostrar mensagens
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = 'message';
+            }, 5000);
+        }
 
-        if (error) {
-            const msgs = {
-                'Invalid login credentials': 'E-mail ou senha incorretos.',
-                'Email not confirmed':        'Confirme seu e-mail antes de entrar.',
-                'Too many requests':          'Muitas tentativas. Aguarde um momento.'
+        // Função para atualizar a interface baseado no estado do usuário
+        function updateUI(user) {
+            const loginForm = document.getElementById('loginForm');
+            const forgotForm = document.getElementById('forgotPasswordForm');
+            const userInfo = document.getElementById('userInfo');
+            
+            if (user) {
+                loginForm.style.display = 'none';
+                forgotForm.style.display = 'none';
+                userInfo.style.display = 'block';
+                
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userId').textContent = user.id;
+                document.getElementById('lastAccess').textContent = new Date().toLocaleString();
+            } else {
+                showLogin();
             }
-            showMsg('loginMsg', msgs[error.message] || ('Erro: ' + error.message), 'error')
-            setLoading(btn, false)
-            return
         }
 
-        // Sessão criada — redirecionar
-        showMsg('loginMsg', '✓ Entrando...', 'success')
-        setTimeout(() => window.location.replace('/dashboard'), 300)
-    }
-
-    async function cadastrar() {
-        const email  = document.getElementById('regEmail').value.trim()
-        const senha  = document.getElementById('regPassword').value
-        const senha2 = document.getElementById('regPasswordConfirm').value
-        const btn    = document.getElementById('btnRegister')
-
-        if (!email || !senha) { showMsg('registerMsg', 'Preencha todos os campos.', 'error'); return }
-        if (senha !== senha2)  { showMsg('registerMsg', 'As senhas não conferem.', 'error'); return }
-        if (senha.length < 6)  { showMsg('registerMsg', 'Senha mínimo 6 caracteres.', 'error'); return }
-
-        setLoading(btn, true)
-
-        const { data, error } = await sb.auth.signUp({ email, password: senha })
-
-        if (error) {
-            showMsg('registerMsg', error.message, 'error')
-            setLoading(btn, false)
-            return
+        // Salvar dados do usuário no localStorage
+        function saveUserToStorage(user) {
+            if (user) {
+                const userData = {
+                    email: user.email,
+                    id: user.id,
+                    lastLogin: new Date().toISOString()
+                };
+                localStorage.setItem('supabase_user', JSON.stringify(userData));
+            } else {
+                localStorage.removeItem('supabase_user');
+            }
         }
 
-        if (data.session) {
-            showMsg('registerMsg', '✓ Conta criada! Entrando...', 'success')
-            setTimeout(() => window.location.replace('/dashboard'), 400)
-        } else {
-            showMsg('registerMsg', 'Conta criada! Verifique seu e-mail para confirmar.', 'success')
-            setLoading(btn, false)
+        // FUNÇÃO DE RECUPERAÇÃO DE SENHA - CORRIGIDA
+        async function resetPassword() {
+            const email = document.getElementById('resetEmail').value;
+            
+            if (!email) {
+                showMessage('Digite seu e-mail!', 'error');
+                return;
+            }
+            
+            // CORREÇÃO: Usar a URL base correta (seu domínio na Vercel)
+            const baseUrl = window.location.origin; // Isso pega https://camp-topaz.vercel.app
+            const redirectTo = baseUrl + '/reset-password.html';
+            
+            console.log('Enviando email para:', email);
+            console.log('Redirect para:', redirectTo);
+            
+            const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectTo
+            });
+            
+            if (error) {
+                showMessage('Erro: ' + error.message, 'error');
+                console.error('Erro detalhado:', error);
+            } else {
+                showMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.', 'success');
+                console.log('Email enviado com sucesso para:', email);
+                
+                setTimeout(() => {
+                    document.getElementById('resetEmail').value = '';
+                    showLogin();
+                }, 3000);
+            }
         }
-    }
 
-    document.addEventListener('keydown', e => {
-        if (e.key !== 'Enter') return
-        if (!document.getElementById('registerForm').classList.contains('active')) fazerLogin()
-        else cadastrar()
-    })
-</script>
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showMessage('Preencha todos os campos!', 'error');
+                return;
+            }
+            
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+            
+            if (error) {
+                showMessage('Erro: ' + error.message, 'error');
+            } else {
+                showMessage('Login realizado com sucesso!', 'success');
+                saveUserToStorage(data.user);
+                
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+            }
+        }
+
+        async function signUp() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showMessage('Preencha todos os campos!', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage('A senha deve ter pelo menos 6 caracteres!', 'error');
+                return;
+            }
+            
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password
+            });
+            
+            if (error) {
+                showMessage('Erro: ' + error.message, 'error');
+            } else {
+                showMessage('Cadastro realizado! Verifique seu e-mail.', 'success');
+                console.log('Usuário criado:', data.user);
+            }
+        }
+
+        async function logout() {
+            const { error } = await supabaseClient.auth.signOut();
+            
+            if (error) {
+                showMessage('Erro ao sair: ' + error.message, 'error');
+            } else {
+                showMessage('Logout realizado com sucesso!', 'success');
+                saveUserToStorage(null);
+                updateUI(null);
+                
+                document.getElementById('email').value = '';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        // Verificar se já está logado ao carregar a página
+        async function checkUser() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            if (user) {
+                showMessage(`Bem-vindo, ${user.email}!`, 'success');
+                updateUI(user);
+                saveUserToStorage(user);
+            } else {
+                showLogin();
+            }
+        }
+
+        // Monitorar mudanças na autenticação
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('Evento de auth:', event);
+            if (event === 'SIGNED_IN') {
+                saveUserToStorage(session?.user);
+                updateUI(session?.user);
+            } else if (event === 'SIGNED_OUT') {
+                saveUserToStorage(null);
+                updateUI(null);
+            }
+        });
+
+        // Verificar usuário ao carregar a página
+        checkUser();
+    </script>
 </body>
 </html>
