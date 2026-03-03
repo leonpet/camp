@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 400px;
+            max-width: 500px;
             margin: 50px auto;
             padding: 20px;
             text-align: center;
@@ -29,14 +29,9 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            width: 45%;
         }
         button:hover {
             background-color: #45a049;
-        }
-        #logoutBtn {
-            background-color: #f44343;
-            width: 100%;
         }
         .message {
             margin-top: 20px;
@@ -51,52 +46,102 @@
             background-color: #f8d7da;
             color: #721c24;
         }
-        #userInfo {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f0f0f0;
-            border-radius: 4px;
-            text-align: left;
+        .page {
+            display: none;
         }
-        #dashboardBtn {
-            background-color: #2196F3;
+        .active {
+            display: block;
+        }
+        #dashboardBtn, #logoutBtn {
             width: 100%;
             margin-top: 10px;
+        }
+        #logoutBtn {
+            background-color: #f44343;
+        }
+        .dashboard-card {
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .nav-buttons button {
+            flex: 1;
         }
     </style>
 </head>
 <body>
-    <h2>Sistema de Login</h2>
+    <h1>Sistema de Login</h1>
     
-    <!-- Área de login (só aparece quando deslogado) -->
-    <div id="loginArea">
-        <input type="email" id="email" placeholder="E-mail" /><br>
-        <input type="password" id="password" placeholder="Senha" /><br>
-        <button onclick="fazerLogin()">Login</button>
-        <button onclick="fazerCadastro()">Cadastro</button>
+    <!-- PÁGINA DE LOGIN -->
+    <div id="loginPage" class="page active">
+        <h2>Login / Cadastro</h2>
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="E-mail" autocomplete="username" required />
+            <input type="password" id="password" placeholder="Senha" autocomplete="current-password" required />
+            <div class="nav-buttons">
+                <button type="submit">Login</button>
+                <button type="button" onclick="fazerCadastro()">Cadastro</button>
+            </div>
+            <button type="button" onclick="mostrarRecuperar()" style="background-color: #ff9800; width: 100%;">Esqueci minha senha</button>
+        </form>
     </div>
 
-    <!-- Área do usuário (só aparece quando logado) -->
-    <div id="userArea" style="display: none;">
-        <h3>Você está logado!</h3>
-        <p><strong>Email:</strong> <span id="userEmail"></span></p>
-        <p><strong>ID:</strong> <span id="userId"></span></p>
-        <button id="dashboardBtn" onclick="irParaDashboard()">Ir para Dashboard</button>
-        <button id="logoutBtn" onclick="fazerLogout()">Sair</button>
+    <!-- PÁGINA DE RECUPERAÇÃO DE SENHA -->
+    <div id="recoverPage" class="page">
+        <h2>Recuperar Senha</h2>
+        <form id="recoverForm">
+            <input type="email" id="resetEmail" placeholder="Seu e-mail" required />
+            <button type="submit">Enviar instruções</button>
+            <button type="button" onclick="mostrarLogin()">Voltar</button>
+        </form>
+    </div>
+
+    <!-- PÁGINA DO DASHBOARD -->
+    <div id="dashboardPage" class="page">
+        <h2>Dashboard</h2>
+        <div class="dashboard-card" id="userInfo">
+            <h3>Informações do Usuário</h3>
+            <p><strong>Email:</strong> <span id="userEmail"></span></p>
+            <p><strong>ID:</strong> <span id="userId"></span></p>
+            <p><strong>Status:</strong> Logado com sucesso!</p>
+        </div>
+        <button onclick="fazerLogout()" id="logoutBtn">Sair da conta</button>
     </div>
     
     <!-- Mensagens -->
     <div id="message" class="message"></div>
 
     <script>
-        // Configuração do Supabase
         const supabaseUrl = 'https://jumfigqlnqplbpokqhvj.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE';
-        
-        // Criar cliente Supabase
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Mostrar mensagem
+        // Navegação entre páginas
+        function mostrarLogin() {
+            document.getElementById('loginPage').classList.add('active');
+            document.getElementById('recoverPage').classList.remove('active');
+            document.getElementById('dashboardPage').classList.remove('active');
+        }
+
+        function mostrarRecuperar() {
+            document.getElementById('loginPage').classList.remove('active');
+            document.getElementById('recoverPage').classList.add('active');
+            document.getElementById('dashboardPage').classList.remove('active');
+        }
+
+        function mostrarDashboard() {
+            document.getElementById('loginPage').classList.remove('active');
+            document.getElementById('recoverPage').classList.remove('active');
+            document.getElementById('dashboardPage').classList.add('active');
+        }
+
         function mostrarMensagem(texto, tipo) {
             const msgDiv = document.getElementById('message');
             msgDiv.textContent = texto;
@@ -107,75 +152,37 @@
             }, 3000);
         }
 
-        // Atualizar interface baseado no login
-        function atualizarInterface(usuario) {
-            const loginArea = document.getElementById('loginArea');
-            const userArea = document.getElementById('userArea');
-            
-            if (usuario) {
-                // Usuário logado
-                loginArea.style.display = 'none';
-                userArea.style.display = 'block';
-                document.getElementById('userEmail').textContent = usuario.email;
-                document.getElementById('userId').textContent = usuario.id;
-                
-                // Salvar no localStorage
-                localStorage.setItem('usuario', JSON.stringify({
-                    email: usuario.email,
-                    id: usuario.id
-                }));
-            } else {
-                // Usuário deslogado
-                loginArea.style.display = 'block';
-                userArea.style.display = 'none';
-                localStorage.removeItem('usuario');
-            }
-        }
-
-        // FUNÇÃO DE LOGIN
+        // LOGIN
         async function fazerLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
-            if (!email || !password) {
-                mostrarMensagem('Preencha todos os campos!', 'error');
-                return;
-            }
-            
             const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password
+                email, password
             });
             
             if (error) {
                 mostrarMensagem('Erro: ' + error.message, 'error');
             } else {
-                mostrarMensagem('Login realizado com sucesso!', 'success');
-                atualizarInterface(data.user);
-                
-                // REDIRECIONAMENTO DIRETO - SEM TIMEOUT
-                window.location.href = '/dashboard';
+                mostrarMensagem('Login realizado!', 'success');
+                document.getElementById('userEmail').textContent = data.user.email;
+                document.getElementById('userId').textContent = data.user.id;
+                mostrarDashboard();
             }
         }
 
-        // FUNÇÃO DE CADASTRO
+        // CADASTRO
         async function fazerCadastro() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
-            if (!email || !password) {
-                mostrarMensagem('Preencha todos os campos!', 'error');
-                return;
-            }
             
             if (password.length < 6) {
                 mostrarMensagem('A senha deve ter pelo menos 6 caracteres!', 'error');
                 return;
             }
             
-            const { data, error } = await supabaseClient.auth.signUp({
-                email: email,
-                password: password
+            const { error } = await supabaseClient.auth.signUp({
+                email, password
             });
             
             if (error) {
@@ -185,34 +192,51 @@
             }
         }
 
-        // FUNÇÃO DE LOGOUT
+        // RECUPERAR SENHA
+        async function resetPassword() {
+            const email = document.getElementById('resetEmail').value;
+            
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.href
+            });
+            
+            if (error) {
+                mostrarMensagem('Erro: ' + error.message, 'error');
+            } else {
+                mostrarMensagem('E-mail de recuperação enviado!', 'success');
+                setTimeout(mostrarLogin, 2000);
+            }
+        }
+
+        // LOGOUT
         async function fazerLogout() {
             await supabaseClient.auth.signOut();
             mostrarMensagem('Logout realizado!', 'success');
-            atualizarInterface(null);
+            mostrarLogin();
             document.getElementById('email').value = '';
             document.getElementById('password').value = '';
         }
 
-        // IR PARA DASHBOARD
-        function irParaDashboard() {
-            window.location.href = '/dashboard';
-        }
-
-        // VERIFICAR USUÁRIO AO CARREGAR
+        // Verificar usuário ao carregar
         async function verificarUsuario() {
             const { data: { user } } = await supabaseClient.auth.getUser();
-            
             if (user) {
-                atualizarInterface(user);
-            } else {
-                // Verificar se tem no localStorage
-                const usuarioSalvo = localStorage.getItem('usuario');
-                if (usuarioSalvo) {
-                    console.log('Usuário encontrado no localStorage:', JSON.parse(usuarioSalvo));
-                }
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userId').textContent = user.id;
+                mostrarDashboard();
             }
         }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            fazerLogin();
+        });
+
+        document.getElementById('recoverForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            resetPassword();
+        });
 
         // Iniciar
         verificarUsuario();
