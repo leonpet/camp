@@ -6,7 +6,6 @@
     <title>Dashboard - CAMPEONATOsupabase</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* (mantenha o mesmo CSS que você já tem) */
         * {
             margin: 0;
             padding: 0;
@@ -132,14 +131,8 @@
         }
 
         @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .welcome-card h1 {
@@ -184,14 +177,8 @@
         .cards-grid .card:nth-child(5) { animation-delay: 0.5s; }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .card:hover {
@@ -233,9 +220,7 @@
             transition: gap 0.3s;
         }
 
-        .card:hover .card-link {
-            gap: 10px;
-        }
+        .card:hover .card-link { gap: 10px; }
 
         .stats-grid {
             display: grid;
@@ -274,16 +259,8 @@
             border-left: 4px solid #667eea;
         }
 
-        .info-card h4 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 18px;
-        }
-
-        .info-card p {
-            color: #666;
-            line-height: 1.6;
-        }
+        .info-card h4 { color: #333; margin-bottom: 10px; font-size: 18px; }
+        .info-card p { color: #666; line-height: 1.6; }
 
         .footer {
             text-align: center;
@@ -298,7 +275,7 @@
 <body>
     <div class="loading" id="loading">
         <div class="loading-spinner"></div>
-        <p>Verificando autenticação...</p>
+        <p id="loadingMsg">Verificando autenticação...</p>
     </div>
 
     <nav class="navbar" id="navbar" style="display: none;">
@@ -352,28 +329,24 @@
                 <p>Gerencie campeonatos, torneios e ligas. Crie, edite e acompanhe as competições.</p>
                 <div class="card-link">Acessar →</div>
             </div>
-
             <div class="card" onclick="window.location.href='/equipes'">
                 <div class="card-icon">⚽</div>
                 <h3>Equipes</h3>
                 <p>Cadastre e gerencie times, elencos e comissão técnica das equipes.</p>
                 <div class="card-link">Acessar →</div>
             </div>
-
             <div class="card" onclick="window.location.href='/partidas'">
                 <div class="card-icon">📅</div>
                 <h3>Partidas</h3>
                 <p>Agende jogos, registre resultados e acompanhe estatísticas das partidas.</p>
                 <div class="card-link">Acessar →</div>
             </div>
-
             <div class="card" onclick="window.location.href='/inscricoes'">
                 <div class="card-icon">📝</div>
                 <h3>Inscrições</h3>
                 <p>Gerencie inscrições de jogadores, validações e documentação.</p>
                 <div class="card-link">Acessar →</div>
             </div>
-
             <div class="card" onclick="window.location.href='/relatorios'">
                 <div class="card-icon">📊</div>
                 <h3>Relatórios</h3>
@@ -393,94 +366,111 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO SUPABASE
         const SUPABASE_URL = 'https://jumfigqlnqplbpokqhvj.supabase.co'
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE'
 
-        // Criar cliente Supabase - usando LET para consistência
         let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
             auth: {
                 persistSession: true,
                 storageKey: 'admin-session',
                 storage: window.localStorage,
                 autoRefreshToken: true,
-                detectSessionInUrl: true,
+                detectSessionInUrl: true,  // ✅ ESSENCIAL: processa o ?code= automaticamente
                 flowType: 'pkce'
             }
         })
 
-        // Elementos do DOM
-        const loading = document.getElementById('loading')
-        const navbar = document.getElementById('navbar')
-        const conteudo = document.getElementById('conteudo')
-        const userEmail = document.getElementById('userEmail')
+        const loading    = document.getElementById('loading')
+        const loadingMsg = document.getElementById('loadingMsg')
+        const navbar     = document.getElementById('navbar')
+        const conteudo   = document.getElementById('conteudo')
+        const userEmail  = document.getElementById('userEmail')
 
-        // Função principal de verificação
+        function mostrarDashboard(email) {
+            userEmail.textContent = email
+            loading.style.display  = 'none'
+            navbar.style.display   = 'flex'
+            conteudo.style.display = 'block'
+
+            document.getElementById('statTimes').textContent    = '12'
+            document.getElementById('statJogadores').textContent = '156'
+            document.getElementById('statPartidas').textContent  = '48'
+            document.getElementById('statGols').textContent      = '124'
+        }
+
         async function verificarAutenticacao() {
             try {
-                console.log('Verificando autenticação no dashboard...')
-                
-                const { data: { session }, error } = await supabaseClient.auth.getSession()
-                
-                if (error) {
-                    console.error('Erro ao obter sessão:', error)
-                    throw error
+                // ─── PASSO 1: Checar se há ?code= na URL (retorno do OAuth/PKCE) ───
+                const params = new URLSearchParams(window.location.search)
+                const code   = params.get('code')
+
+                if (code) {
+                    loadingMsg.textContent = 'Autenticando...'
+                    console.log('Código PKCE detectado, trocando por sessão...')
+
+                    // exchangeCodeForSession troca o code pelo access_token
+                    const { data, error } = await supabaseClient.auth.exchangeCodeForSession(window.location.href)
+
+                    if (error) {
+                        console.error('Erro ao trocar código:', error)
+                        throw error
+                    }
+
+                    // Limpar o ?code= da URL sem recarregar a página
+                    window.history.replaceState({}, document.title, '/dashboard')
+
+                    if (data?.session) {
+                        console.log('Sessão criada via PKCE:', data.session.user.email)
+                        mostrarDashboard(data.session.user.email)
+                        return
+                    }
                 }
 
+                // ─── PASSO 2: Sem code na URL — verificar sessão existente ───
+                const { data: { session }, error } = await supabaseClient.auth.getSession()
+
+                if (error) throw error
+
                 if (!session) {
-                    console.log('SEM SESSÃO - redirecionando para login')
+                    console.log('Sem sessão — redirecionando para login')
                     window.location.replace('/')
                     return
                 }
 
-                console.log('Usuário autenticado:', session.user.email)
-                
-                userEmail.textContent = session.user.email
-                
-                loading.style.display = 'none'
-                navbar.style.display = 'flex'
-                conteudo.style.display = 'block'
+                console.log('Sessão existente:', session.user.email)
+                mostrarDashboard(session.user.email)
 
-                // Dados de exemplo
-                document.getElementById('statTimes').textContent = '12'
-                document.getElementById('statJogadores').textContent = '156'
-                document.getElementById('statPartidas').textContent = '48'
-                document.getElementById('statGols').textContent = '124'
-
-            } catch (error) {
-                console.error('Erro na verificação:', error)
-                setTimeout(() => {
-                    window.location.replace('/')
-                }, 2000)
+            } catch (err) {
+                console.error('Erro na autenticação:', err)
+                setTimeout(() => window.location.replace('/'), 2000)
             }
         }
 
-        // Função de logout
         async function sair() {
             try {
-                console.log('Fazendo logout...')
                 await supabaseClient.auth.signOut()
                 localStorage.removeItem('admin-session')
                 window.location.replace('/')
-            } catch (error) {
-                console.error('Erro ao sair:', error)
+            } catch (err) {
+                console.error('Erro ao sair:', err)
                 alert('Erro ao fazer logout. Tente novamente.')
             }
         }
 
         window.sair = sair
 
-        // Verificar autenticação quando a página carregar
-        document.addEventListener('DOMContentLoaded', verificarAutenticacao)
-
-        // Verificação de segurança adicional
-        setTimeout(async () => {
-            const { data: { session } } = await supabaseClient.auth.getSession()
-            if (!session && window.location.pathname !== '/') {
-                console.log('Sessão expirou, redirecionando...')
+        // Ouvir mudanças de estado de auth (inclui SIGNED_IN após troca de código)
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('Auth event:', event)
+            if (event === 'SIGNED_IN' && session) {
+                // Já tratado acima, mas garante cobertura
+            }
+            if (event === 'SIGNED_OUT') {
                 window.location.replace('/')
             }
-        }, 2000)
+        })
+
+        document.addEventListener('DOMContentLoaded', verificarAutenticacao)
     </script>
 </body>
 </html>
