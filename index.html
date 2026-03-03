@@ -2,206 +2,201 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Login Supabase</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Campeonato</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 500px;
-            margin: 50px auto;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 420px;
+        }
+        h1 {
             text-align: center;
+            font-size: 22px;
+            color: #2c3e50;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #95a5a6;
+            font-size: 13px;
+            margin-bottom: 28px;
         }
         input {
             width: 100%;
-            padding: 10px;
-            margin: 10px 0;
+            padding: 12px;
+            margin: 8px 0;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 6px;
             box-sizing: border-box;
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s;
         }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 20px;
-            margin: 10px 5px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover { background-color: #45a049; }
-        .message {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .success { background-color: #d4edda; color: #155724; }
-        .error   { background-color: #f8d7da; color: #721c24; }
-        .page { display: none; }
-        .active { display: block; }
-        #logoutBtn {
-            background-color: #f44343;
-            width: 100%;
-            margin-top: 10px;
-        }
-        .dashboard-card {
-            background-color: #f0f0f0;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        .nav-buttons {
+        input:focus { border-color: #3498db; }
+        .btn-group {
             display: flex;
             gap: 10px;
-            justify-content: center;
+            margin-top: 12px;
         }
-        .nav-buttons button { flex: 1; }
-        #forgotBtn {
-            background-color: #ff9800;
+        button {
+            flex: 1;
+            padding: 13px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.88; }
+        .btn-login    { background: #3498db; }
+        .btn-cadastro { background: #27ae60; }
+        .btn-forgot {
             width: 100%;
+            margin-top: 10px;
+            background: #ff9800;
+            flex: none;
         }
+        .message {
+            margin-top: 16px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+        .success { background: #d4edda; color: #155724; display: block; }
+        .error   { background: #f8d7da; color: #721c24; display: block; }
+
+        /* Página de recuperação */
+        #recoverPage { display: none; }
+        #loginPage   { display: block; }
     </style>
 </head>
 <body>
-    <h1>Sistema de Login</h1>
 
-    <!-- PÁGINA DE LOGIN -->
-    <div id="loginPage" class="page active">
-        <h2>Login / Cadastro</h2>
-        <form id="loginForm">
-            <input type="email"    id="email"    placeholder="E-mail" autocomplete="username"         required />
-            <input type="password" id="password" placeholder="Senha"  autocomplete="current-password" required />
-            <div class="nav-buttons">
-                <button type="submit">Login</button>
-                <button type="button" onclick="fazerCadastro()">Cadastro</button>
-            </div>
-            <button type="button" id="forgotBtn" onclick="mostrarRecuperar()">Esqueci minha senha</button>
-        </form>
-    </div>
+<div class="card">
+    <h1>🏆 Campeonato</h1>
+    <p class="subtitle">Sistema de Gestão</p>
 
-    <!-- PÁGINA DE RECUPERAÇÃO DE SENHA -->
-    <div id="recoverPage" class="page">
-        <h2>Recuperar Senha</h2>
-        <form id="recoverForm">
-            <p>Digite seu e-mail para receber instruções:</p>
-            <input type="email" id="resetEmail" placeholder="Seu e-mail" required />
-            <button type="submit">Enviar instruções</button>
-            <button type="button" onclick="mostrarLogin()">Voltar</button>
-        </form>
-    </div>
-
-    <!-- DASHBOARD -->
-    <div id="dashboardPage" class="page">
-        <h2>Dashboard</h2>
-        <div class="dashboard-card">
-            <h3>Informações do Usuário</h3>
-            <p><strong>Email:</strong> <span id="userEmail"></span></p>
-            <p><strong>ID:</strong>    <span id="userId"></span></p>
-            <p><strong>Status:</strong> Logado com sucesso!</p>
+    <!-- LOGIN -->
+    <div id="loginPage">
+        <input type="email"    id="email"    placeholder="E-mail"  autocomplete="username"         />
+        <input type="password" id="password" placeholder="Senha"   autocomplete="current-password" />
+        <div class="btn-group">
+            <button class="btn-login"    onclick="fazerLogin()">Entrar</button>
+            <button class="btn-cadastro" onclick="fazerCadastro()">Cadastrar</button>
         </div>
-        <button onclick="fazerLogout()" id="logoutBtn">Sair da conta</button>
+        <button class="btn-forgot" onclick="mostrarRecuperar()">Esqueci minha senha</button>
+    </div>
+
+    <!-- RECUPERAÇÃO DE SENHA -->
+    <div id="recoverPage">
+        <p style="color:#555; font-size:14px; margin-bottom:10px;">Digite seu e-mail para receber o link de redefinição:</p>
+        <input type="email" id="resetEmail" placeholder="Seu e-mail" />
+        <div class="btn-group">
+            <button class="btn-login" onclick="enviarRecuperacao()">Enviar link</button>
+            <button style="background:#95a5a6;" onclick="mostrarLogin()">Voltar</button>
+        </div>
     </div>
 
     <div id="message" class="message"></div>
+</div>
 
-    <script>
-        const supabaseUrl = 'https://jumfigqlnqplbpokqhvj.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE';
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+<script>
+    const SUPABASE_URL = 'https://jumfigqlnqplbpokqhvj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function mostrarLogin() {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('loginPage').classList.add('active');
+    function mostrarMensagem(texto, tipo) {
+        const el = document.getElementById('message');
+        el.textContent = texto;
+        el.className = 'message ' + tipo;
+        setTimeout(() => { el.className = 'message'; el.textContent = ''; }, 4000);
+    }
+    function mostrarLogin() {
+        document.getElementById('loginPage').style.display   = 'block';
+        document.getElementById('recoverPage').style.display = 'none';
+    }
+    function mostrarRecuperar() {
+        document.getElementById('loginPage').style.display   = 'none';
+        document.getElementById('recoverPage').style.display = 'block';
+    }
+
+    async function fazerLogin() {
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) { mostrarMensagem('Preencha e-mail e senha.', 'error'); return; }
+
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+            mostrarMensagem('Erro: ' + error.message, 'error');
+        } else {
+            window.location.href = 'menu.html';
         }
-        function mostrarRecuperar() {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('recoverPage').classList.add('active');
+    }
+
+    async function fazerCadastro() {
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) { mostrarMensagem('Preencha e-mail e senha.', 'error'); return; }
+        if (password.length < 6) { mostrarMensagem('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
+
+        const { error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) {
+            mostrarMensagem('Erro: ' + error.message, 'error');
+        } else {
+            mostrarMensagem('Cadastro realizado! Verifique seu e-mail.', 'success');
         }
-        function mostrarDashboard() {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('dashboardPage').classList.add('active');
+    }
+
+    async function enviarRecuperacao() {
+        const email = document.getElementById('resetEmail').value.trim();
+        if (!email) { mostrarMensagem('Digite seu e-mail.', 'error'); return; }
+
+        const redirectTo = window.location.origin + '/reset-password.html';
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) {
+            mostrarMensagem('Erro: ' + error.message, 'error');
+        } else {
+            mostrarMensagem('Link enviado! Verifique sua caixa de entrada.', 'success');
+            setTimeout(() => {
+                document.getElementById('resetEmail').value = '';
+                mostrarLogin();
+            }, 3500);
         }
-        function mostrarMensagem(texto, tipo) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.textContent = texto;
-            msgDiv.className = `message ${tipo}`;
-            setTimeout(() => { msgDiv.textContent = ''; msgDiv.className = 'message'; }, 4000);
+    }
+
+    // Se já estiver logado, vai direto para o menu
+    async function verificarSessao() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) window.location.href = 'menu.html';
+    }
+
+    // Permitir Enter nos campos
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            if (document.getElementById('loginPage').style.display !== 'none') fazerLogin();
+            else enviarRecuperacao();
         }
+    });
 
-        // LOGIN
-        async function fazerLogin() {
-            const email    = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) {
-                mostrarMensagem('Erro: ' + error.message, 'error');
-            } else {
-                document.getElementById('userEmail').textContent = data.user.email;
-                document.getElementById('userId').textContent   = data.user.id;
-                mostrarDashboard();
-            }
-        }
-
-        // CADASTRO
-        async function fazerCadastro() {
-            const email    = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            if (password.length < 6) {
-                mostrarMensagem('A senha deve ter pelo menos 6 caracteres!', 'error');
-                return;
-            }
-            const { error } = await supabaseClient.auth.signUp({ email, password });
-            if (error) {
-                mostrarMensagem('Erro: ' + error.message, 'error');
-            } else {
-                mostrarMensagem('Cadastro realizado! Verifique seu e-mail.', 'success');
-            }
-        }
-
-        // RECUPERAÇÃO DE SENHA — redirectTo aponta para reset-password.html
-        async function resetPassword() {
-            const email = document.getElementById('resetEmail').value;
-
-            // ⚠️ Aponta para a página dedicada de reset, no mesmo domínio
-            const redirectTo = window.location.origin + '/reset-password.html';
-
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
-            if (error) {
-                mostrarMensagem('Erro: ' + error.message, 'error');
-            } else {
-                mostrarMensagem('E-mail enviado! Verifique sua caixa de entrada.', 'success');
-                setTimeout(() => {
-                    document.getElementById('resetEmail').value = '';
-                    mostrarLogin();
-                }, 3500);
-            }
-        }
-
-        // LOGOUT
-        async function fazerLogout() {
-            await supabaseClient.auth.signOut();
-            mostrarLogin();
-            document.getElementById('email').value    = '';
-            document.getElementById('password').value = '';
-        }
-
-        // Verificar sessão ao carregar
-        async function verificarUsuario() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (user) {
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('userId').textContent   = user.id;
-                mostrarDashboard();
-            }
-        }
-
-        // Event listeners
-        document.getElementById('loginForm').addEventListener('submit',  e => { e.preventDefault(); fazerLogin(); });
-        document.getElementById('recoverForm').addEventListener('submit', e => { e.preventDefault(); resetPassword(); });
-
-        verificarUsuario();
-    </script>
+    verificarSessao();
+</script>
 </body>
 </html>
