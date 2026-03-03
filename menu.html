@@ -24,9 +24,6 @@
             padding: 20px 16px 40px;
         }
 
-        /* Oculta tudo até confirmar sessão */
-        #conteudo { display: none; }
-
         .header {
             max-width: 700px;
             margin: 0 auto 24px;
@@ -124,11 +121,10 @@
 </head>
 <body>
 
-<div id="conteudo">
     <div class="header">
         <div class="header-left">
             <h1>🏆 Painel do Campeonato</h1>
-            <p id="user-email"></p>
+            <p id="user-email">Verificando acesso...</p>
         </div>
         <button class="btn-logout" onclick="fazerLogout()">Sair</button>
     </div>
@@ -145,28 +141,29 @@
         <!-- Próximos botões serão adicionados aqui -->
 
     </div>
-</div>
 
-<script>
-    const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <script>
+        const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // onAuthStateChange é disparado assim que o SDK resolve a sessão —
-    // mais confiável que getSession() logo após um redirect
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            document.getElementById('user-email').textContent = 'Logado como: ' + session.user.email;
-            document.getElementById('conteudo').style.display = 'block';
-        } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-            window.location.href = 'index.html';
+        async function verificarAcesso() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (!session) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            document.getElementById("user-email").textContent = "Logado como: " + session.user.email;
         }
-    });
 
-    async function fazerLogout() {
-        await supabaseClient.auth.signOut();
-        window.location.href = 'index.html';
-    }
-</script>
+        async function fazerLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.href = "index.html";
+        }
+
+        verificarAcesso();
+    </script>
 </body>
 </html>
