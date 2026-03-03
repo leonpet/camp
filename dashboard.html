@@ -26,33 +26,37 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            margin-top: 20px;
+            margin: 10px;
         }
         button:hover {
             background-color: #d32f2f;
         }
-        .user-info {
+        .info-box {
             background-color: #e3f2fd;
             padding: 20px;
             border-radius: 4px;
             margin: 20px 0;
             text-align: left;
         }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Dashboard</h1>
-        <p>Área restrita - apenas usuários logados podem ver esta página</p>
+        <p class="success" id="welcome"></p>
         
-        <div class="user-info" id="userInfo">
-            <h3>Informações do Usuário</h3>
-            <p>Carregando...</p>
+        <div class="info-box" id="userInfo">
+            <h3>Carregando informações...</h3>
         </div>
         
-        <button onclick="logout()">Sair da conta</button>
-        <br><br>
-        <button onclick="goToLogin()" style="background-color: #4CAF50;">Voltar ao Login</button>
+        <button onclick="fazerLogout()">Sair da conta</button>
+        <button onclick="voltarLogin()" style="background-color: #4CAF50;">Voltar ao Login</button>
     </div>
 
     <script>
@@ -60,35 +64,43 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        async function checkAuth() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            
-            const userInfo = document.getElementById('userInfo');
-            
-            if (!user) {
-                // Se não estiver logado, redireciona para login
-                window.location.href = 'index.html';
-            } else {
-                // Mostra informações do usuário
-                userInfo.innerHTML = `
+        async function verificarAutenticacao() {
+            try {
+                const { data: { user }, error } = await supabaseClient.auth.getUser();
+                
+                if (error || !user) {
+                    // Se não estiver logado, volta para o login
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // Mostrar informações do usuário
+                document.getElementById('welcome').textContent = `Bem-vindo, ${user.email}!`;
+                
+                document.getElementById('userInfo').innerHTML = `
                     <h3>Informações do Usuário</h3>
                     <p><strong>Email:</strong> ${user.email}</p>
                     <p><strong>ID:</strong> ${user.id}</p>
                     <p><strong>Último acesso:</strong> ${new Date().toLocaleString()}</p>
                 `;
+                
+            } catch (err) {
+                console.error('Erro:', err);
+                window.location.href = '/';
             }
         }
 
-        async function logout() {
+        async function fazerLogout() {
             await supabaseClient.auth.signOut();
-            window.location.href = 'index.html';
+            window.location.href = '/';
         }
 
-        function goToLogin() {
-            window.location.href = 'index.html';
+        function voltarLogin() {
+            window.location.href = '/';
         }
 
-        checkAuth();
+        // Verificar autenticação ao carregar
+        verificarAutenticacao();
     </script>
 </body>
 </html>
