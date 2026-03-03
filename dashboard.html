@@ -6,6 +6,7 @@
     <title>Dashboard - CAMPEONATOsupabase</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* (mantenha o mesmo CSS que você já tem) */
         * {
             margin: 0;
             padding: 0;
@@ -279,6 +280,11 @@
             font-size: 18px;
         }
 
+        .info-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
         .footer {
             text-align: center;
             color: #999;
@@ -387,12 +393,12 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO SUPABASE - MESMA DO INDEX.HTML
+        // CONFIGURAÇÃO SUPABASE
         const SUPABASE_URL = 'https://jumfigqlnqplbpokqhvj.supabase.co'
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE'
 
-        // Criar cliente Supabase com MESMA configuração do index.html
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        // Criar cliente Supabase - usando LET para consistência
+        let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
             auth: {
                 persistSession: true,
                 storageKey: 'admin-session',
@@ -409,23 +415,17 @@
         const conteudo = document.getElementById('conteudo')
         const userEmail = document.getElementById('userEmail')
 
-        // DEBUG: Mostrar localStorage ao carregar a página
-        console.log('LocalStorage no dashboard:', localStorage.getItem('admin-session'))
-
         // Função principal de verificação
         async function verificarAutenticacao() {
             try {
                 console.log('Verificando autenticação no dashboard...')
                 
-                const { data: { session }, error } = await supabase.auth.getSession()
+                const { data: { session }, error } = await supabaseClient.auth.getSession()
                 
                 if (error) {
                     console.error('Erro ao obter sessão:', error)
                     throw error
                 }
-
-                console.log('Sessão no dashboard:', session ? 'Encontrada' : 'Não encontrada')
-                console.log('Detalhes da sessão:', session)
 
                 if (!session) {
                     console.log('SEM SESSÃO - redirecionando para login')
@@ -433,7 +433,6 @@
                     return
                 }
 
-                // Se chegou aqui, está logado
                 console.log('Usuário autenticado:', session.user.email)
                 
                 userEmail.textContent = session.user.email
@@ -442,7 +441,11 @@
                 navbar.style.display = 'flex'
                 conteudo.style.display = 'block'
 
-                carregarDados()
+                // Dados de exemplo
+                document.getElementById('statTimes').textContent = '12'
+                document.getElementById('statJogadores').textContent = '156'
+                document.getElementById('statPartidas').textContent = '48'
+                document.getElementById('statGols').textContent = '124'
 
             } catch (error) {
                 console.error('Erro na verificação:', error)
@@ -452,23 +455,11 @@
             }
         }
 
-        // Função para carregar dados
-        async function carregarDados() {
-            try {
-                document.getElementById('statTimes').textContent = '12'
-                document.getElementById('statJogadores').textContent = '156'
-                document.getElementById('statPartidas').textContent = '48'
-                document.getElementById('statGols').textContent = '124'
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error)
-            }
-        }
-
         // Função de logout
         async function sair() {
             try {
                 console.log('Fazendo logout...')
-                await supabase.auth.signOut()
+                await supabaseClient.auth.signOut()
                 localStorage.removeItem('admin-session')
                 window.location.replace('/')
             } catch (error) {
@@ -480,28 +471,16 @@
         window.sair = sair
 
         // Verificar autenticação quando a página carregar
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Página dashboard carregada')
-            verificarAutenticacao()
-        })
+        document.addEventListener('DOMContentLoaded', verificarAutenticacao)
 
         // Verificação de segurança adicional
         setTimeout(async () => {
-            const { data: { session } } = await supabase.auth.getSession()
+            const { data: { session } } = await supabaseClient.auth.getSession()
             if (!session && window.location.pathname !== '/') {
                 console.log('Sessão expirou, redirecionando...')
                 window.location.replace('/')
             }
         }, 2000)
-
-        // Monitorar mudanças na autenticação
-        supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Evento de autenticação no dashboard:', event)
-            
-            if (event === 'SIGNED_OUT') {
-                window.location.replace('/')
-            }
-        })
     </script>
 </body>
 </html>
