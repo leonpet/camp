@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Campeonato</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #13131a;
+            --surface2: #1a1a24;
+            --border: #2a2a38;
+            --accent: #4f6ef7;
+            --accent-glow: rgba(79,110,247,0.2);
+            --text: #e8e8f0;
+            --muted: #6b6b80;
+            --green: #4ff79a;
+            --yellow: #f7c44f;
+            --red: #f74f4f;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(79,110,247,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79,110,247,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Loading ── */
+        #loading {
+            position: fixed; inset: 0;
+            background: var(--bg);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; flex-direction: column; gap: 16px;
+        }
+
+        #loading .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        #loading p { color: var(--muted); font-size: 14px; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Navbar ── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(10,10,15,0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 16px; letter-spacing: -0.3px;
+        }
+
+        .nav-logo .dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .nav-right {
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        .nav-email {
+            font-family: 'DM Mono', monospace;
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 6px;
+        }
+
+        .btn-sair {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-sair:hover {
+            border-color: var(--red);
+            color: var(--red);
+            background: rgba(247,79,79,0.05);
+        }
+
+        /* ── Main ── */
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 88px 24px 60px;
+            position: relative; z-index: 1;
+        }
+
+        .page-header {
+            margin-bottom: 40px;
+            animation: rise 0.4s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.8px;
+            margin-bottom: 6px;
+        }
+
+        .page-header p { color: var(--muted); font-size: 15px; }
+
+        /* ── Stats ── */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px 22px;
+            animation: rise 0.4s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        .stat:nth-child(1) { animation-delay: 0.05s; }
+        .stat:nth-child(2) { animation-delay: 0.10s; }
+        .stat:nth-child(3) { animation-delay: 0.15s; }
+        .stat:nth-child(4) { animation-delay: 0.20s; }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            color: var(--text);
+        }
+
+        .stat-value span {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--green);
+            margin-left: 6px;
+            letter-spacing: 0;
+        }
+
+        /* ── Modules grid ── */
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 14px;
+        }
+
+        .module {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            animation: rise 0.4s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        .module:nth-child(1) { animation-delay: 0.10s; }
+        .module:nth-child(2) { animation-delay: 0.15s; }
+        .module:nth-child(3) { animation-delay: 0.20s; }
+        .module:nth-child(4) { animation-delay: 0.25s; }
+        .module:nth-child(5) { animation-delay: 0.30s; }
+
+        .module:hover {
+            border-color: var(--accent);
+            background: var(--surface2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(79,110,247,0.12);
+        }
+
+        .module-icon {
+            font-size: 28px;
+            margin-bottom: 14px;
+            display: block;
+        }
+
+        .module h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .module p {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .module-arrow {
+            display: inline-block;
+            margin-top: 14px;
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .module:hover .module-arrow { transform: translateX(4px); }
+    </style>
+</head>
+<body>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Verificando sessão...</p>
+    </div>
+
+    <nav id="navbar" style="display:none">
+        <div class="nav-logo">
+            <div class="dot"></div>
+            Campeonato
+        </div>
+        <div class="nav-right">
+            <span class="nav-email" id="userEmail"></span>
+            <button class="btn-sair" onclick="sair()">Sair</button>
+        </div>
+    </nav>
+
+    <main id="conteudo" style="display:none">
+        <div class="page-header">
+            <h1>Painel de Controle</h1>
+            <p>Gerencie seu campeonato em um só lugar.</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">Times</div>
+                <div class="stat-value">12 <span>↑ 2</span></div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Jogadores</div>
+                <div class="stat-value">156</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Partidas</div>
+                <div class="stat-value">48</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Gols</div>
+                <div class="stat-value">124</div>
+            </div>
+        </div>
+
+        <div class="section-label">Módulos</div>
+        <div class="modules">
+            <a class="module" href="/competicoes">
+                <span class="module-icon">🏆</span>
+                <h3>Competições</h3>
+                <p>Campeonatos, torneios e ligas.</p>
+                <span class="module-arrow">Acessar →</span>
+            </a>
+            <a class="module" href="/equipes">
+                <span class="module-icon">⚽</span>
+                <h3>Equipes</h3>
+                <p>Times, elencos e comissão técnica.</p>
+                <span class="module-arrow">Acessar →</span>
+            </a>
+            <a class="module" href="/partidas">
+                <span class="module-icon">📅</span>
+                <h3>Partidas</h3>
+                <p>Jogos, resultados e estatísticas.</p>
+                <span class="module-arrow">Acessar →</span>
+            </a>
+            <a class="module" href="/inscricoes">
+                <span class="module-icon">📝</span>
+                <h3>Inscrições</h3>
+                <p>Jogadores, validações e documentos.</p>
+                <span class="module-arrow">Acessar →</span>
+            </a>
+            <a class="module" href="/relatorios">
+                <span class="module-icon">📊</span>
+                <h3>Relatórios</h3>
+                <p>Classificação e estatísticas gerais.</p>
+                <span class="module-arrow">Acessar →</span>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        const SUPABASE_URL = 'https://jumfigqlnqplbpokqhvj.supabase.co'
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE'
+
+        // Sem flowType PKCE, sem detectSessionInUrl — login por senha não precisa disso
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: {
+                persistSession: true,
+                storageKey: 'sb-session',
+                autoRefreshToken: true
+            }
+        })
+
+        async function init() {
+            const { data: { session }, error } = await sb.auth.getSession()
+
+            if (!session) {
+                window.location.replace('/')
+                return
+            }
+
+            document.getElementById('userEmail').textContent = session.user.email
+            document.getElementById('loading').style.display  = 'none'
+            document.getElementById('navbar').style.display   = 'flex'
+            document.getElementById('conteudo').style.display = 'block'
+        }
+
+        async function sair() {
+            await sb.auth.signOut()
+            window.location.replace('/')
+        }
+
+        window.sair = sair
+        init()
+    </script>
+</body>
+</html>
