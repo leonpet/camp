@@ -23,81 +23,40 @@
             width: 100%;
             max-width: 420px;
         }
-        h1 {
-            text-align: center;
-            font-size: 22px;
-            color: #2c3e50;
-            margin-bottom: 6px;
-        }
-        .subtitle {
-            text-align: center;
-            color: #95a5a6;
-            font-size: 13px;
-            margin-bottom: 28px;
-        }
+        h1 { text-align: center; font-size: 22px; color: #2c3e50; margin-bottom: 6px; }
+        .subtitle { text-align: center; color: #95a5a6; font-size: 13px; margin-bottom: 28px; }
         input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 15px;
-            outline: none;
-            transition: border 0.2s;
+            width: 100%; padding: 12px; margin: 8px 0;
+            border: 1px solid #ddd; border-radius: 6px;
+            box-sizing: border-box; font-size: 15px; outline: none; transition: border 0.2s;
         }
         input:focus { border-color: #3498db; }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-        }
+        .btn-group { display: flex; gap: 10px; margin-top: 12px; }
         button {
-            flex: 1;
-            padding: 13px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: bold;
-            color: white;
-            transition: opacity 0.2s;
+            flex: 1; padding: 13px; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 15px; font-weight: bold; color: white; transition: opacity 0.2s;
         }
         button:hover { opacity: 0.88; }
         .btn-login    { background: #3498db; }
         .btn-cadastro { background: #27ae60; }
-        .btn-forgot {
-            width: 100%;
-            margin-top: 10px;
-            background: #ff9800;
-            flex: none;
-        }
+        .btn-forgot   { width: 100%; margin-top: 10px; background: #ff9800; flex: none; }
         .message {
-            margin-top: 16px;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 14px;
-            text-align: center;
-            display: none;
+            margin-top: 16px; padding: 10px 14px; border-radius: 6px;
+            font-size: 14px; text-align: center; display: none;
         }
         .success { background: #d4edda; color: #155724; display: block; }
         .error   { background: #f8d7da; color: #721c24; display: block; }
-
-        /* Página de recuperação */
         #recoverPage { display: none; }
-        #loginPage   { display: block; }
     </style>
 </head>
 <body>
-
 <div class="card">
     <h1>🏆 Campeonato</h1>
     <p class="subtitle">Sistema de Gestão</p>
 
-    <!-- LOGIN -->
     <div id="loginPage">
-        <input type="email"    id="email"    placeholder="E-mail"  autocomplete="username"         />
-        <input type="password" id="password" placeholder="Senha"   autocomplete="current-password" />
+        <input type="email"    id="email"    placeholder="E-mail" autocomplete="username" />
+        <input type="password" id="password" placeholder="Senha"  autocomplete="current-password" />
         <div class="btn-group">
             <button class="btn-login"    onclick="fazerLogin()">Entrar</button>
             <button class="btn-cadastro" onclick="fazerCadastro()">Cadastrar</button>
@@ -105,9 +64,8 @@
         <button class="btn-forgot" onclick="mostrarRecuperar()">Esqueci minha senha</button>
     </div>
 
-    <!-- RECUPERAÇÃO DE SENHA -->
     <div id="recoverPage">
-        <p style="color:#555; font-size:14px; margin-bottom:10px;">Digite seu e-mail para receber o link de redefinição:</p>
+        <p style="color:#555; font-size:14px; margin-bottom:10px;">Digite seu e-mail para receber o link:</p>
         <input type="email" id="resetEmail" placeholder="Seu e-mail" />
         <div class="btn-group">
             <button class="btn-login" onclick="enviarRecuperacao()">Enviar link</button>
@@ -143,26 +101,30 @@
         const password = document.getElementById('password').value;
         if (!email || !password) { mostrarMensagem('Preencha e-mail e senha.', 'error'); return; }
 
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) {
             mostrarMensagem('Erro: ' + error.message, 'error');
-        } else {
-            window.location.href = 'menu.html';
+            return;
         }
+
+        // Aguarda a sessão ser gravada no localStorage antes de redirecionar
+        await supabaseClient.auth.setSession({
+            access_token:  data.session.access_token,
+            refresh_token: data.session.refresh_token
+        });
+
+        window.location.href = 'menu.html';
     }
 
     async function fazerCadastro() {
         const email    = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         if (!email || !password) { mostrarMensagem('Preencha e-mail e senha.', 'error'); return; }
-        if (password.length < 6) { mostrarMensagem('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
+        if (password.length < 6) { mostrarMensagem('Senha mínimo 6 caracteres.', 'error'); return; }
 
         const { error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) {
-            mostrarMensagem('Erro: ' + error.message, 'error');
-        } else {
-            mostrarMensagem('Cadastro realizado! Verifique seu e-mail.', 'success');
-        }
+        if (error) mostrarMensagem('Erro: ' + error.message, 'error');
+        else mostrarMensagem('Cadastro realizado! Verifique seu e-mail.', 'success');
     }
 
     async function enviarRecuperacao() {
@@ -175,28 +137,22 @@
             mostrarMensagem('Erro: ' + error.message, 'error');
         } else {
             mostrarMensagem('Link enviado! Verifique sua caixa de entrada.', 'success');
-            setTimeout(() => {
-                document.getElementById('resetEmail').value = '';
-                mostrarLogin();
-            }, 3500);
+            setTimeout(() => { document.getElementById('resetEmail').value = ''; mostrarLogin(); }, 3500);
         }
     }
 
-    // Se já estiver logado, vai direto para o menu
-    async function verificarSessao() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) window.location.href = 'menu.html';
-    }
-
-    // Permitir Enter nos campos
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-            if (document.getElementById('loginPage').style.display !== 'none') fazerLogin();
-            else enviarRecuperacao();
+    // Se já estiver logado vai direto pro menu
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            window.location.href = 'menu.html';
         }
     });
 
-    verificarSessao();
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        if (document.getElementById('recoverPage').style.display === 'block') enviarRecuperacao();
+        else fazerLogin();
+    });
 </script>
 </body>
 </html>
