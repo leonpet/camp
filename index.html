@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Login Supabase - Completo</title>
+    <title>Login Supabase</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -38,12 +38,6 @@
         }
         #logoutBtn:hover {
             background-color: #d32f2f;
-        }
-        #forgotPasswordBtn {
-            background-color: #ff9800;
-        }
-        #forgotPasswordBtn:hover {
-            background-color: #f57c00;
         }
         .message {
             margin-top: 20px;
@@ -91,52 +85,115 @@
             color: #004499;
             background: none;
         }
+        #dashboardLink {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
-    <h2>Login / Cadastro</h2>
-    
-    <!-- Formulário de Login (mostra quando deslogado) -->
-    <div id="loginForm">
-        <input type="email" id="email" placeholder="E-mail" /><br>
-        <input type="password" id="password" placeholder="Senha" /><br>
-        <button onclick="login()">Login</button>
-        <button onclick="signUp()">Cadastro</button>
-        <br>
-        <button class="link-button" onclick="showForgotPassword()">Esqueci minha senha</button>
-    </div>
+    <div id="app">
+        <h2>Login / Cadastro</h2>
+        
+        <!-- Formulário de Login -->
+        <div id="loginForm">
+            <input type="email" id="email" placeholder="E-mail" /><br>
+            <input type="password" id="password" placeholder="Senha" /><br>
+            <button onclick="login()">Login</button>
+            <button onclick="signUp()">Cadastro</button>
+            <br>
+            <button class="link-button" onclick="showForgotPassword()">Esqueci minha senha</button>
+        </div>
 
-    <!-- Formulário de Recuperação de Senha -->
-    <div id="forgotPasswordForm">
-        <h3>Recuperar Senha</h3>
-        <p>Digite seu e-mail para receber instruções de recuperação:</p>
-        <input type="email" id="resetEmail" placeholder="Seu e-mail" /><br>
-        <button onclick="resetPassword()" style="background-color: #ff9800;">Enviar instruções</button>
-        <br>
-        <button class="link-button" onclick="showLogin()">Voltar ao login</button>
-    </div>
+        <!-- Formulário de Recuperação -->
+        <div id="forgotPasswordForm">
+            <h3>Recuperar Senha</h3>
+            <p>Digite seu e-mail para receber instruções:</p>
+            <input type="email" id="resetEmail" placeholder="Seu e-mail" /><br>
+            <button onclick="resetPassword()" style="background-color: #ff9800;">Enviar instruções</button>
+            <br>
+            <button class="link-button" onclick="showLogin()">Voltar ao login</button>
+        </div>
 
-    <!-- Informações do usuário (mostra quando logado) -->
-    <div id="userInfo">
-        <h3>Usuário Logado</h3>
-        <p><strong>Email:</strong> <span id="userEmail"></span></p>
-        <p><strong>ID:</strong> <span id="userId"></span></p>
-        <p><strong>Último acesso:</strong> <span id="lastAccess"></span></p>
-        <button id="logoutBtn" onclick="logout()">Sair</button>
+        <!-- Informações do usuário -->
+        <div id="userInfo">
+            <h3>Usuário Logado</h3>
+            <p><strong>Email:</strong> <span id="userEmail"></span></p>
+            <p><strong>ID:</strong> <span id="userId"></span></p>
+            <p><strong>Status:</strong> <span id="userStatus">Ativo</span></p>
+            <button onclick="goToDashboard()" style="background-color: #2196F3;">Ir para Dashboard</button>
+            <button id="logoutBtn" onclick="logout()">Sair</button>
+        </div>
+        
+        <!-- Mensagens -->
+        <div id="message" class="message"></div>
     </div>
-    
-    <!-- Div para mostrar mensagens -->
-    <div id="message" class="message"></div>
 
     <script>
-        // Configuração do Supabase
         const supabaseUrl = 'https://jumfigqlnqplbpokqhvj.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE';
-        
-        // Criar cliente Supabase
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Funções para alternar entre formulários
+        // Verificar se estamos na página correta baseado na URL
+        function checkCurrentPage() {
+            const path = window.location.pathname;
+            console.log('Página atual:', path);
+            
+            // Se estiver tentando acessar dashboard diretamente
+            if (path.includes('dashboard') || path === '/dashboard' || path === '/dashboard.html') {
+                checkDashboardAccess();
+            }
+        }
+
+        // Verificar acesso ao dashboard
+        async function checkDashboardAccess() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            if (!user) {
+                // Se não estiver logado, redireciona para index
+                window.location.href = '/';
+            } else {
+                // Se estiver logado, mostra o dashboard
+                showDashboard();
+            }
+        }
+
+        // Mostrar dashboard
+        function showDashboard() {
+            document.body.innerHTML = `
+                <div style="max-width:600px; margin:50px auto; padding:20px; text-align:center;">
+                    <h1>Dashboard</h1>
+                    <div id="userInfo" style="background:#e3f2fd; padding:20px; border-radius:4px; margin:20px 0; text-align:left;">
+                        <h3>Carregando informações...</h3>
+                    </div>
+                    <button onclick="logout()" style="background:#f44343; color:white; padding:12px 20px; border:none; border-radius:4px; cursor:pointer;">Sair da conta</button>
+                </div>
+            `;
+            
+            loadDashboardData();
+        }
+
+        // Carregar dados do dashboard
+        async function loadDashboardData() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            const userInfo = document.getElementById('userInfo');
+            if (user) {
+                userInfo.innerHTML = `
+                    <h3>Informações do Usuário</h3>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>ID:</strong> ${user.id}</p>
+                    <p><strong>Último acesso:</strong> ${new Date().toLocaleString()}</p>
+                `;
+            }
+        }
+
+        // Funções de UI
         function showForgotPassword() {
             document.getElementById('loginForm').style.display = 'none';
             document.getElementById('forgotPasswordForm').style.display = 'block';
@@ -149,19 +206,16 @@
             document.getElementById('userInfo').style.display = 'none';
         }
 
-        // Função para mostrar mensagens
         function showMessage(text, type) {
             const messageDiv = document.getElementById('message');
             messageDiv.textContent = text;
             messageDiv.className = `message ${type}`;
-            
             setTimeout(() => {
                 messageDiv.textContent = '';
                 messageDiv.className = 'message';
             }, 5000);
         }
 
-        // Função para atualizar a interface baseado no estado do usuário
         function updateUI(user) {
             const loginForm = document.getElementById('loginForm');
             const forgotForm = document.getElementById('forgotPasswordForm');
@@ -174,60 +228,25 @@
                 
                 document.getElementById('userEmail').textContent = user.email;
                 document.getElementById('userId').textContent = user.id;
-                document.getElementById('lastAccess').textContent = new Date().toLocaleString();
+                saveUserToStorage(user);
             } else {
                 showLogin();
             }
         }
 
-        // Salvar dados do usuário no localStorage
         function saveUserToStorage(user) {
             if (user) {
-                const userData = {
+                localStorage.setItem('supabase_user', JSON.stringify({
                     email: user.email,
                     id: user.id,
                     lastLogin: new Date().toISOString()
-                };
-                localStorage.setItem('supabase_user', JSON.stringify(userData));
+                }));
             } else {
                 localStorage.removeItem('supabase_user');
             }
         }
 
-        // FUNÇÃO DE RECUPERAÇÃO DE SENHA - CORRIGIDA
-        async function resetPassword() {
-            const email = document.getElementById('resetEmail').value;
-            
-            if (!email) {
-                showMessage('Digite seu e-mail!', 'error');
-                return;
-            }
-            
-            // CORREÇÃO: Usar a URL base correta (seu domínio na Vercel)
-            const baseUrl = window.location.origin; // Isso pega https://camp-topaz.vercel.app
-            const redirectTo = baseUrl + '/reset-password.html';
-            
-            console.log('Enviando email para:', email);
-            console.log('Redirect para:', redirectTo);
-            
-            const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                redirectTo: redirectTo
-            });
-            
-            if (error) {
-                showMessage('Erro: ' + error.message, 'error');
-                console.error('Erro detalhado:', error);
-            } else {
-                showMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.', 'success');
-                console.log('Email enviado com sucesso para:', email);
-                
-                setTimeout(() => {
-                    document.getElementById('resetEmail').value = '';
-                    showLogin();
-                }, 3000);
-            }
-        }
-
+        // Funções de autenticação
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -238,19 +257,15 @@
             }
             
             const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password
+                email, password
             });
             
             if (error) {
                 showMessage('Erro: ' + error.message, 'error');
             } else {
-                showMessage('Login realizado com sucesso!', 'success');
+                showMessage('Login realizado!', 'success');
                 saveUserToStorage(data.user);
-                
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 2000);
+                updateUI(data.user);
             }
         }
 
@@ -269,60 +284,68 @@
             }
             
             const { data, error } = await supabaseClient.auth.signUp({
-                email: email,
-                password: password
+                email, password
             });
             
             if (error) {
                 showMessage('Erro: ' + error.message, 'error');
             } else {
                 showMessage('Cadastro realizado! Verifique seu e-mail.', 'success');
-                console.log('Usuário criado:', data.user);
+            }
+        }
+
+        async function resetPassword() {
+            const email = document.getElementById('resetEmail').value;
+            
+            if (!email) {
+                showMessage('Digite seu e-mail!', 'error');
+                return;
+            }
+            
+            const baseUrl = window.location.origin;
+            const redirectTo = baseUrl + '/reset-password.html';
+            
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectTo
+            });
+            
+            if (error) {
+                showMessage('Erro: ' + error.message, 'error');
+            } else {
+                showMessage('E-mail de recuperação enviado!', 'success');
+                setTimeout(() => {
+                    document.getElementById('resetEmail').value = '';
+                    showLogin();
+                }, 3000);
             }
         }
 
         async function logout() {
-            const { error } = await supabaseClient.auth.signOut();
-            
-            if (error) {
-                showMessage('Erro ao sair: ' + error.message, 'error');
+            await supabaseClient.auth.signOut();
+            saveUserToStorage(null);
+            window.location.href = '/';
+        }
+
+        function goToDashboard() {
+            window.location.href = '/dashboard';
+        }
+
+        // Inicialização
+        async function init() {
+            // Verificar se é página de dashboard
+            if (window.location.pathname.includes('dashboard')) {
+                await checkDashboardAccess();
             } else {
-                showMessage('Logout realizado com sucesso!', 'success');
-                saveUserToStorage(null);
-                updateUI(null);
-                
-                document.getElementById('email').value = '';
-                document.getElementById('password').value = '';
+                // Página normal de login
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (user) {
+                    updateUI(user);
+                }
             }
         }
 
-        // Verificar se já está logado ao carregar a página
-        async function checkUser() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            
-            if (user) {
-                showMessage(`Bem-vindo, ${user.email}!`, 'success');
-                updateUI(user);
-                saveUserToStorage(user);
-            } else {
-                showLogin();
-            }
-        }
-
-        // Monitorar mudanças na autenticação
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            console.log('Evento de auth:', event);
-            if (event === 'SIGNED_IN') {
-                saveUserToStorage(session?.user);
-                updateUI(session?.user);
-            } else if (event === 'SIGNED_OUT') {
-                saveUserToStorage(null);
-                updateUI(null);
-            }
-        });
-
-        // Verificar usuário ao carregar a página
-        checkUser();
+        // Iniciar
+        init();
     </script>
 </body>
 </html>
