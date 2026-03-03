@@ -157,19 +157,19 @@
     </div>
 
     <script>
-        // CONFIGURAÇÕES SUPABASE - VERIFIQUE SE ESTÃO CORRETAS
+        // CONFIGURAÇÕES SUPABASE
         const SUPABASE_URL = 'https://jumfigqlnqplbpokqhvj.supabase.co'
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE'
 
-        // Criar cliente Supabase com configuração FORTALECIDA para Vercel
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        // Criar cliente Supabase - usando LET em vez de CONST para evitar redeclaração
+        let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
             auth: {
                 persistSession: true,
                 storageKey: 'admin-session',
                 storage: window.localStorage,
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
-                flowType: 'pkce' // IMPORTANTE: PKCE para maior compatibilidade com Vercel
+                flowType: 'pkce'
             }
         })
 
@@ -189,7 +189,7 @@
         // Verificar se já está logado ao carregar a página
         async function verificarSessao() {
             try {
-                const { data: { session } } = await supabase.auth.getSession()
+                const { data: { session } } = await supabaseClient.auth.getSession()
                 
                 if (session) {
                     console.log('Sessão encontrada, redirecionando para dashboard...')
@@ -207,20 +207,17 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault()
             
-            // Validar campos
             if (!email.value || !senha.value) {
                 mostrarMsg('Preencha todos os campos', 'error')
                 return
             }
 
-            // Desabilitar botão
             btn.disabled = true
             btn.textContent = 'Entrando...'
             mostrarMsg('Autenticando...', 'info')
 
             try {
-                // Tentar fazer login
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email.value,
                     password: senha.value
                 })
@@ -242,13 +239,9 @@
                 }
 
                 if (data.session) {
-                    console.log('Login bem-sucedido! Sessão:', data.session)
+                    console.log('Login bem-sucedido!')
                     mostrarMsg('Login realizado! Redirecionando...', 'success')
                     
-                    // Verificar se a sessão foi salva no localStorage
-                    console.log('LocalStorage após login:', localStorage.getItem('admin-session'))
-                    
-                    // Redirecionar para o dashboard
                     setTimeout(() => {
                         window.location.replace('/dashboard.html')
                     }, 1000)
@@ -259,21 +252,6 @@
                 mostrarMsg('Erro de conexão. Tente novamente.', 'error')
                 btn.disabled = false
                 btn.textContent = 'Entrar no Painel'
-            }
-        })
-
-        // Adicionar efeito de loading nos inputs
-        email.addEventListener('input', () => {
-            if (msg.classList.contains('error')) {
-                msg.textContent = ''
-                msg.className = 'msg'
-            }
-        })
-
-        senha.addEventListener('input', () => {
-            if (msg.classList.contains('error')) {
-                msg.textContent = ''
-                msg.className = 'msg'
             }
         })
     </script>
