@@ -157,18 +157,19 @@
     </div>
 
     <script>
-        // Configuração do Supabase
+        // CONFIGURAÇÕES SUPABASE - VERIFIQUE SE ESTÃO CORRETAS
         const SUPABASE_URL = 'https://jumfigqlnqplbpokqhvj.supabase.co'
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE'
 
-        // Criar cliente Supabase com configuração de sessão
+        // Criar cliente Supabase com configuração FORTALECIDA para Vercel
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
             auth: {
                 persistSession: true,
                 storageKey: 'admin-session',
                 storage: window.localStorage,
                 autoRefreshToken: true,
-                detectSessionInUrl: true
+                detectSessionInUrl: true,
+                flowType: 'pkce' // IMPORTANTE: PKCE para maior compatibilidade com Vercel
             }
         })
 
@@ -191,8 +192,8 @@
                 const { data: { session } } = await supabase.auth.getSession()
                 
                 if (session) {
-                    console.log('Sessão encontrada, redirecionando...')
-                    window.location.href = '/dashboard.html'
+                    console.log('Sessão encontrada, redirecionando para dashboard...')
+                    window.location.replace('/dashboard.html')
                 }
             } catch (error) {
                 console.error('Erro ao verificar sessão:', error)
@@ -227,7 +228,6 @@
                 if (error) {
                     console.error('Erro no login:', error)
                     
-                    // Mensagens amigáveis para erros comuns
                     if (error.message.includes('Invalid login credentials')) {
                         mostrarMsg('E-mail ou senha incorretos', 'error')
                     } else if (error.message.includes('Email not confirmed')) {
@@ -242,12 +242,15 @@
                 }
 
                 if (data.session) {
-                    console.log('Login bem-sucedido!')
+                    console.log('Login bem-sucedido! Sessão:', data.session)
                     mostrarMsg('Login realizado! Redirecionando...', 'success')
                     
-                    // Pequeno delay para mostrar a mensagem de sucesso
+                    // Verificar se a sessão foi salva no localStorage
+                    console.log('LocalStorage após login:', localStorage.getItem('admin-session'))
+                    
+                    // Redirecionar para o dashboard
                     setTimeout(() => {
-                        window.location.href = '/dashboard.html'
+                        window.location.replace('/dashboard.html')
                     }, 1000)
                 }
 
