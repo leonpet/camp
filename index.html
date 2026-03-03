@@ -101,19 +101,12 @@
         const password = document.getElementById('password').value;
         if (!email || !password) { mostrarMensagem('Preencha e-mail e senha.', 'error'); return; }
 
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) {
             mostrarMensagem('Erro: ' + error.message, 'error');
-            return;
+        } else {
+            window.location.href = 'menu.html';
         }
-
-        // Aguarda a sessão ser gravada no localStorage antes de redirecionar
-        await supabaseClient.auth.setSession({
-            access_token:  data.session.access_token,
-            refresh_token: data.session.refresh_token
-        });
-
-        window.location.href = 'menu.html';
     }
 
     async function fazerCadastro() {
@@ -140,13 +133,6 @@
             setTimeout(() => { document.getElementById('resetEmail').value = ''; mostrarLogin(); }, 3500);
         }
     }
-
-    // Se já estiver logado vai direto pro menu
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            window.location.href = 'menu.html';
-        }
-    });
 
     document.addEventListener('keydown', e => {
         if (e.key !== 'Enter') return;
