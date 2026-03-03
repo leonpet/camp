@@ -13,7 +13,6 @@
             --gray:    #95a5a6;
             --gold:    #f1c40f;
             --bg:      #f0f2f5;
-            --card-bg: #ffffff;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,7 +24,9 @@
             padding: 20px 16px 40px;
         }
 
-        /* ── Header ── */
+        /* Oculta tudo até confirmar sessão */
+        #conteudo { display: none; }
+
         .header {
             max-width: 700px;
             margin: 0 auto 24px;
@@ -37,15 +38,9 @@
             justify-content: space-between;
             align-items: center;
         }
-        .header-left h1 {
-            font-size: 20px;
-            color: #2c3e50;
-        }
-        .header-left p {
-            font-size: 13px;
-            color: var(--gray);
-            margin-top: 2px;
-        }
+        .header-left h1 { font-size: 20px; color: #2c3e50; }
+        .header-left p  { font-size: 13px; color: var(--gray); margin-top: 2px; }
+
         .btn-logout {
             background: var(--danger);
             color: white;
@@ -59,7 +54,17 @@
         }
         .btn-logout:hover { opacity: 0.85; }
 
-        /* ── Grid de botões ── */
+        .section-title {
+            max-width: 700px;
+            margin: 20px auto 10px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray);
+            padding-left: 4px;
+        }
+
         .grid {
             max-width: 700px;
             margin: 0 auto;
@@ -68,9 +73,8 @@
             gap: 14px;
         }
 
-        /* Botão grande estilo app mobile */
         .nav-btn {
-            background: var(--card-bg);
+            background: white;
             border: none;
             border-radius: 14px;
             padding: 24px 16px 20px;
@@ -89,72 +93,48 @@
             box-shadow: 0 6px 18px rgba(0,0,0,0.12);
         }
         .nav-btn:active { transform: translateY(0); }
+        .nav-btn .icon  { font-size: 36px; line-height: 1; }
+        .nav-btn .label { font-size: 15px; font-weight: bold; color: #2c3e50; text-align: center; }
+        .nav-btn .desc  { font-size: 12px; color: var(--gray); text-align: center; line-height: 1.4; }
 
-        .nav-btn .icon {
-            font-size: 36px;
-            line-height: 1;
-        }
-        .nav-btn .label {
-            font-size: 15px;
-            font-weight: bold;
-            color: #2c3e50;
-            text-align: center;
-        }
-        .nav-btn .desc {
-            font-size: 12px;
-            color: var(--gray);
-            text-align: center;
-            line-height: 1.4;
-        }
+        .nav-btn.blue  { border-bottom-color: var(--primary); }
+        .nav-btn.green { border-bottom-color: var(--success); }
+        .nav-btn.red   { border-bottom-color: var(--danger);  }
+        .nav-btn.gold  { border-bottom-color: var(--gold);    }
+        .nav-btn.gray  { border-bottom-color: var(--gray);    }
 
-        /* Cores de destaque por tipo */
-        .nav-btn.blue   { border-bottom-color: var(--primary); }
-        .nav-btn.green  { border-bottom-color: var(--success); }
-        .nav-btn.red    { border-bottom-color: var(--danger);  }
-        .nav-btn.gold   { border-bottom-color: var(--gold);    }
-        .nav-btn.gray   { border-bottom-color: var(--gray);    }
-
-        /* Botão ocupando linha inteira (para seções especiais) */
-        .nav-btn.full { grid-column: span 2; flex-direction: row; justify-content: flex-start; padding: 18px 20px; gap: 16px; }
-        .nav-btn.full .icon { font-size: 28px; }
-        .nav-btn.full .text { text-align: left; }
+        .nav-btn.full {
+            grid-column: span 2;
+            flex-direction: row;
+            justify-content: flex-start;
+            padding: 18px 20px;
+            gap: 16px;
+        }
+        .nav-btn.full .icon  { font-size: 28px; }
         .nav-btn.full .label { font-size: 15px; }
 
-        /* ── Seção title ── */
-        .section-title {
-            max-width: 700px;
-            margin: 20px auto 10px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--gray);
-            padding-left: 4px;
-        }
-
-        /* ── Responsivo mobile ── */
         @media (max-width: 400px) {
-            .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .grid { gap: 10px; }
             .nav-btn { padding: 18px 10px 14px; }
-            .nav-btn .icon { font-size: 28px; }
+            .nav-btn .icon  { font-size: 28px; }
             .nav-btn .label { font-size: 13px; }
-            .nav-btn .desc { display: none; }
+            .nav-btn .desc  { display: none; }
         }
     </style>
 </head>
 <body>
 
+<div id="conteudo">
     <div class="header">
         <div class="header-left">
             <h1>🏆 Painel do Campeonato</h1>
-            <p id="user-email">Verificando acesso...</p>
+            <p id="user-email"></p>
         </div>
         <button class="btn-logout" onclick="fazerLogout()">Sair</button>
     </div>
 
-    <!-- SEÇÃO: CADASTROS -->
     <div class="section-title">Cadastros</div>
-    <div class="grid" id="grid-cadastros">
+    <div class="grid">
 
         <a href="equipes.html" class="nav-btn blue">
             <span class="icon">🛡️</span>
@@ -162,35 +142,31 @@
             <span class="desc">Cadastrar e gerenciar equipes</span>
         </a>
 
-        <!-- Novos botões serão adicionados aqui conforme as páginas forem enviadas -->
+        <!-- Próximos botões serão adicionados aqui -->
 
     </div>
+</div>
 
-    <!-- SEÇÃO: GESTÃO (será preenchida conforme páginas chegarem) -->
-    <!-- <div class="section-title">Gestão</div>
-    <div class="grid" id="grid-gestao"></div> -->
+<script>
+    const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    <script>
-        const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        async function verificarAcesso() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                alert("Acesso restrito! Faça login.");
-                window.location.href = "index.html";
-                return;
-            }
-            document.getElementById("user-email").textContent = "Logado como: " + session.user.email;
+    // onAuthStateChange é disparado assim que o SDK resolve a sessão —
+    // mais confiável que getSession() logo após um redirect
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            document.getElementById('user-email').textContent = 'Logado como: ' + session.user.email;
+            document.getElementById('conteudo').style.display = 'block';
+        } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+            window.location.href = 'index.html';
         }
+    });
 
-        async function fazerLogout() {
-            await supabaseClient.auth.signOut();
-            window.location.href = "index.html";
-        }
-
-        verificarAcesso();
-    </script>
+    async function fazerLogout() {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'index.html';
+    }
+</script>
 </body>
 </html>
