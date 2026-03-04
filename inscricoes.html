@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscrição e Grupos - Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary:#3498db; --success:#27ae60; --danger:#e74c3c; --dark:#2c3e50; --accent:#e67e22; }
+        body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; }
+        .container { max-width:850px; margin:auto; background:white; padding:25px; border-radius:12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .btn-voltar { color: var(--primary); font-weight: bold; border: 1px solid var(--primary); padding: 5px 15px; border-radius: 5px; transition: 0.3s; cursor: pointer; background: white; }
+        .btn-voltar:hover { background: var(--primary); color: white; }
+        .form-box { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #e0e0e0; }
+        .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+        .field-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
+        label { font-size: 12px; font-weight: bold; color: #666; }
+        select, input { padding: 12px; border-radius: 5px; border: 1px solid #ddd; outline: none; }
+        input#input_grupo { width: 80px; text-transform: uppercase; text-align: center; font-weight: bold; }
+        button { cursor: pointer; padding: 12px 20px; border: none; border-radius: 5px; color: white; font-weight: bold; transition: 0.3s; }
+        .btn-add { background: var(--success); }
+        .btn-add:hover { background: #219150; }
+        .btn-del { background: var(--danger); padding: 5px 10px; font-size: 12px; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; transition: 0.2s; }
+        .list-item:hover { background: #f9f9f9; }
+        .info-box { display: flex; align-items: center; gap: 15px; }
+        .badge-grupo { background: var(--dark); color: white; padding: 8px 12px; border-radius: 6px; font-weight: bold; min-width: 40px; text-align: center; }
+        .details { display: flex; flex-direction: column; }
+        .label-comp  { font-size: 11px; color: var(--accent); font-weight: bold; }
+        .label-equipe { font-size: 16px; font-weight: bold; color: var(--dark); }
+        #status-msg { text-align: center; padding: 15px; color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>📝 Inscrição e Definição de Grupos</h2>
+        <button class="btn-voltar" onclick="voltarMenu()">⬅ Painel</button>
+    </div>
+
+    <div class="form-box">
+        <div class="form-row">
+            <div class="field-group">
+                <label>Competição</label>
+                <select id="select_competicao"><option value="">Selecione...</option></select>
+            </div>
+            <div class="field-group">
+                <label>Equipe</label>
+                <select id="select_equipe"><option value="">Selecione...</option></select>
+            </div>
+            <div class="field-group" style="flex:0;">
+                <label>Grupo</label>
+                <input type="text" id="input_grupo" placeholder="A" maxlength="10">
+            </div>
+            <button class="btn-add" onclick="inscreverEquipe()">Confirmar Inscrição</button>
+        </div>
+    </div>
+
+    <div id="status-msg">Verificando autenticação...</div>
+    <div id="lista-inscricoes"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessaoAtual = null;
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+
+    inicializar();
+}
+
+async function inicializar() {
+    const status = document.getElementById('status-msg');
+    status.innerText = "Carregando listas...";
+
+    const [comps, equis] = await Promise.all([
+        supabaseClient.from('campeonato_competicao').select('*').order('competicao'),
+        supabaseClient.from('campeonato_equipe').select('*').order('nome_equipe')
+    ]);
+
+    if (comps.error || equis.error) { status.innerText = "Erro ao carregar dados iniciais."; return; }
+
+    const selComp = document.getElementById('select_competicao');
+    selComp.innerHTML = '<option value="">Selecione...</option>';
+    comps.data.forEach(c => selComp.innerHTML += `<option value="${c.id_competicao}">${c.competicao}</option>`);
+
+    const selEqui = document.getElementById('select_equipe');
+    selEqui.innerHTML = '<option value="">Selecione...</option>';
+    equis.data.forEach(e => selEqui.innerHTML += `<option value="${e.id_equipe}">${e.nome_equipe}</option>`);
+
+    carregarInscricoes();
+}
+
+async function carregarInscricoes() {
+    const status = document.getElementById('status-msg');
+    const lista  = document.getElementById('lista-inscricoes');
+
+    const { data, error } = await supabaseClient
+        .from('campeonato_inscricao')
+        .select(`
+            id_inscricao,
+            grupo,
+            campeonato_competicao(competicao),
+            campeonato_equipe(nome_equipe)
+        `)
+        .order('grupo', { ascending: true });
+
+    if (error) { status.innerText = "Erro: " + error.message; return; }
+
+    status.innerText = data.length === 0 ? "Nenhuma inscrição realizada." : "";
+    lista.innerHTML = data.map(i => `
+        <div class="list-item">
+            <div class="info-box">
+                <div class="badge-grupo">${i.grupo || '-'}</div>
+                <div class="details">
+                    <span class="label-comp">${i.campeonato_competicao?.competicao || 'N/A'}</span>
+                    <span class="label-equipe">${i.campeonato_equipe?.nome_equipe || 'N/A'}</span>
+                </div>
+            </div>
+            <button class="btn-del" onclick="excluirInscricao(${i.id_inscricao})">Remover</button>
+        </div>
+    `).join('');
+}
+
+async function inscreverEquipe() {
+    const compId = document.getElementById('select_competicao').value;
+    const equiId = document.getElementById('select_equipe').value;
+    const grupo  = document.getElementById('input_grupo').value.trim().toUpperCase();
+
+    if (!compId || !equiId || !grupo) return alert("Preencha todos os campos, incluindo o Grupo!");
+
+    const { error } = await supabaseClient
+        .from('campeonato_inscricao')
+        .insert([{ id_competicao: compId, id_equipe: equiId, grupo: grupo }]);
+
+    if (error) {
+        if (error.code === "23505") alert("Esta equipe já está inscrita nesta competição!");
+        else alert("Erro ao inscrever: " + error.message);
+    } else {
+        document.getElementById('input_grupo').value = "";
+        carregarInscricoes();
+    }
+}
+
+async function excluirInscricao(id) {
+    if (!confirm("Deseja realmente remover esta inscrição?")) return;
+    const { error } = await supabaseClient.from('campeonato_inscricao').delete().eq('id_inscricao', id);
+    if (error) alert("Erro ao excluir: " + error.message);
+    else carregarInscricoes();
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>
