@@ -6,51 +6,28 @@
     <title>Painel do Campeonato</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --primary: #3498db;
-            --success: #27ae60;
-            --danger:  #e74c3c;
-            --gray:    #95a5a6;
-            --gold:    #f1c40f;
-            --bg:      #f0f2f5;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: var(--bg); min-height: 100vh; padding: 20px 16px 40px; }
+        :root { --primary:#3498db; --success:#27ae60; --danger:#e74c3c; --gray:#95a5a6; --gold:#f1c40f; }
+        body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; }
+        .container { max-width:700px; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
 
-        .header {
-            max-width: 700px; margin: 0 auto 24px; background: white;
-            border-radius: 12px; padding: 18px 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .header-left h1 { font-size: 20px; color: #2c3e50; }
-        .header-left p  { font-size: 13px; color: var(--gray); margin-top: 2px; }
-        .btn-logout {
-            background: var(--danger); color: white; border: none;
-            padding: 8px 16px; border-radius: 8px; cursor: pointer;
-            font-size: 13px; font-weight: bold; transition: opacity 0.2s;
-        }
-        .btn-logout:hover { opacity: 0.85; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .header h2 { margin: 0; }
+        .btn-logout { background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
 
         .section-title {
-            max-width: 700px; margin: 20px auto 10px;
-            font-size: 12px; font-weight: bold; text-transform: uppercase;
-            letter-spacing: 1px; color: var(--gray); padding-left: 4px;
+            font-size: 11px; font-weight: bold; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--gray); margin: 20px 0 10px;
         }
-        .grid {
-            max-width: 700px; margin: 0 auto;
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
-        }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .nav-btn {
-            background: white; border: none; border-radius: 14px;
-            padding: 24px 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            background: #f9f9f9; border: none; border-radius: 12px;
+            padding: 24px 16px 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);
             cursor: pointer; text-decoration: none;
             display: flex; flex-direction: column; align-items: center; gap: 10px;
             transition: transform 0.15s, box-shadow 0.15s;
             border-bottom: 4px solid transparent;
         }
-        .nav-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
-        .nav-btn:active { transform: translateY(0); }
+        .nav-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); background: white; }
         .nav-btn .icon  { font-size: 36px; line-height: 1; }
         .nav-btn .label { font-size: 15px; font-weight: bold; color: #2c3e50; text-align: center; }
         .nav-btn .desc  { font-size: 12px; color: var(--gray); text-align: center; line-height: 1.4; }
@@ -61,12 +38,7 @@
         .nav-btn.gold  { border-bottom-color: var(--gold);    }
         .nav-btn.gray  { border-bottom-color: var(--gray);    }
 
-        .nav-btn.full {
-            grid-column: span 2; flex-direction: row;
-            justify-content: flex-start; padding: 18px 20px; gap: 16px;
-        }
-        .nav-btn.full .icon  { font-size: 28px; }
-        .nav-btn.full .label { font-size: 15px; }
+        #user-info { font-size: 13px; color: var(--gray); }
 
         @media (max-width: 400px) {
             .grid { gap: 10px; }
@@ -78,11 +50,12 @@
     </style>
 </head>
 <body>
+<div class="container">
 
     <div class="header">
-        <div class="header-left">
-            <h1>🏆 Painel do Campeonato</h1>
-            <p id="user-email">Verificando acesso...</p>
+        <div>
+            <h2>🏆 Painel do Campeonato</h2>
+            <div id="user-info">Verificando autenticação...</div>
         </div>
         <button class="btn-logout" onclick="fazerLogout()">Sair</button>
     </div>
@@ -102,43 +75,57 @@
             <span class="desc">Gerenciar e registrar partidas</span>
         </a>
 
+        <!-- Próximos botões aqui -->
+
     </div>
 
-    <script>
-        const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</div>
 
-        let sessaoConfirmada = false;
+<script>
+    const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Tenta getSession imediatamente
-        supabaseClient.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                sessaoConfirmada = true;
-                document.getElementById("user-email").textContent = "Logado como: " + session.user.email;
-            }
-        });
+    async function verificarAcesso() {
+        // 1. Verifica se vieram tokens no hash (vindo do login)
+        const hash   = window.location.hash.replace(/^#/, '');
+        const params = new URLSearchParams(hash);
+        const accessToken  = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
 
-        // Escuta mudanças — captura caso getSession tenha chegado cedo demais
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            if (session) {
-                sessaoConfirmada = true;
-                document.getElementById("user-email").textContent = "Logado como: " + session.user.email;
-            }
-        });
+        if (accessToken && refreshToken) {
+            // Restaura a sessão com os tokens recebidos e limpa o hash da URL
+            const { data, error } = await supabaseClient.auth.setSession({
+                access_token:  accessToken,
+                refresh_token: refreshToken
+            });
+            window.history.replaceState(null, '', window.location.pathname);
 
-        // Só redireciona para login após 1.5s se nenhuma sessão foi confirmada
-        // Tempo suficiente para o SDK ler o localStorage e disparar os eventos
-        setTimeout(() => {
-            if (!sessaoConfirmada) {
+            if (error || !data.session) {
                 window.location.href = "index.html";
+                return;
             }
-        }, 1500);
 
-        async function fazerLogout() {
-            await supabaseClient.auth.signOut();
-            window.location.href = "index.html";
+            document.getElementById("user-info").textContent = "Logado como: " + data.session.user.email;
+            return;
         }
-    </script>
+
+        // 2. Sem tokens no hash — verifica sessão normal no localStorage
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        document.getElementById("user-info").textContent = "Logado como: " + session.user.email;
+    }
+
+    async function fazerLogout() {
+        await supabaseClient.auth.signOut();
+        window.location.href = "index.html";
+    }
+
+    verificarAcesso();
+</script>
 </body>
 </html>

@@ -102,20 +102,23 @@
         const password = document.getElementById('password').value;
         if (!email || !password) { mostrarMensagem('Preencha e-mail e senha.', 'error'); return; }
 
-        // Desabilita botão para evitar duplo clique
         const btn = document.getElementById('btn-entrar');
         btn.disabled = true;
         btn.textContent = 'Entrando...';
 
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
         if (error) {
             mostrarMensagem('Erro: ' + error.message, 'error');
             btn.disabled = false;
             btn.textContent = 'Entrar';
+            return;
         }
-        // Não faz redirect aqui — o onAuthStateChange abaixo cuida disso
-        // depois que a sessão for confirmada como gravada
+
+        // Passa os tokens via hash na URL para o menu.html restaurar a sessão
+        const token   = data.session.access_token;
+        const refresh = data.session.refresh_token;
+        window.location.href = `menu.html#access_token=${token}&refresh_token=${refresh}`;
     }
 
     async function fazerCadastro() {
@@ -142,14 +145,6 @@
             setTimeout(() => { document.getElementById('resetEmail').value = ''; mostrarLogin(); }, 3500);
         }
     }
-
-    // Redireciona SOMENTE após o evento SIGNED_IN — garantia de que
-    // a sessão já está gravada no localStorage antes de trocar de página
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            window.location.href = 'menu.html';
-        }
-    });
 
     document.addEventListener('keydown', e => {
         if (e.key !== 'Enter') return;
