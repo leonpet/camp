@@ -3,129 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Campeonato</title>
+    <title>Painel Administrativo</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary:#3498db; --success:#27ae60; --danger:#e74c3c; --gray:#95a5a6; --gold:#f1c40f; }
-        body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; }
-        .container { max-width:700px; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .header h2 { margin: 0; }
-        .btn-logout { background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
-
-        .section-title {
-            font-size: 11px; font-weight: bold; text-transform: uppercase;
-            letter-spacing: 1px; color: var(--gray); margin: 20px 0 10px;
-        }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        .nav-btn {
-            background: #f9f9f9; border: none; border-radius: 12px;
-            padding: 24px 16px 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            cursor: pointer; text-decoration: none;
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
-            transition: transform 0.15s, box-shadow 0.15s;
-            border-bottom: 4px solid transparent;
-        }
-        .nav-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); background: white; }
-        .nav-btn .icon  { font-size: 36px; line-height: 1; }
-        .nav-btn .label { font-size: 15px; font-weight: bold; color: #2c3e50; text-align: center; }
-        .nav-btn .desc  { font-size: 12px; color: var(--gray); text-align: center; line-height: 1.4; }
-
-        .nav-btn.blue  { border-bottom-color: var(--primary); }
-        .nav-btn.green { border-bottom-color: var(--success); }
-        .nav-btn.red   { border-bottom-color: var(--danger);  }
-        .nav-btn.gold  { border-bottom-color: var(--gold);    }
-        .nav-btn.gray  { border-bottom-color: var(--gray);    }
-
-        #user-info { font-size: 13px; color: var(--gray); }
-
-        @media (max-width: 400px) {
-            .grid { gap: 10px; }
-            .nav-btn { padding: 18px 10px 14px; }
-            .nav-btn .icon  { font-size: 28px; }
-            .nav-btn .label { font-size: 13px; }
-            .nav-btn .desc  { display: none; }
-        }
+        :root { --primary: #3498db; --dark: #2c3e50; --danger: #e74c3c; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; display: none; /* Escondido por padrão */ }
+        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .section-title { font-size: 13px; font-weight: bold; color: #95a5a6; text-transform: uppercase; margin: 30px 0 15px 5px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .card { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; background: white; color: var(--dark); text-decoration: none; border-radius: 15px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.03); height: 120px; border-bottom: 4px solid var(--primary); }
+        .btn-logout { background: white; color: var(--danger); border: 1px solid var(--danger); padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:#f4f7f6; display:flex; justify-content:center; align-items:center; z-index:9999; font-weight:bold; }
     </style>
 </head>
 <body>
-<div class="container">
 
+<div id="loading">Verificando sessão ativa...</div>
+
+<div class="container" id="conteudo">
     <div class="header">
-        <div>
-            <h2>🏆 Painel do Campeonato</h2>
-            <div id="user-info">Verificando autenticação...</div>
-        </div>
-        <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+        <h2>⚙️ Painel Admin</h2>
+        <button class="btn-logout" onclick="sair()">Sair</button>
     </div>
 
-    <div class="section-title">Cadastros</div>
+    <div class="section-title">Navegação</div>
     <div class="grid">
-
-        <a href="equipes.html" class="nav-btn blue">
-            <span class="icon">🛡️</span>
-            <span class="label">Equipes</span>
-            <span class="desc">Cadastrar e gerenciar equipes</span>
-        </a>
-
-        <a href="partidas.html" class="nav-btn green">
-            <span class="icon">⚽</span>
-            <span class="label">Partidas</span>
-            <span class="desc">Gerenciar e registrar partidas</span>
-        </a>
-
-        <!-- Próximos botões aqui -->
-
+        <a href="competicao.html" class="card">🏆 Competições</a>
+        <a href="equipes.html" class="card">🛡️ Equipes</a>
+        <a href="inscricao.html" class="card">📝 Inscrições</a>
+        <a href="partidas.html" class="card">🏟️ Partidas</a>
+        <a href="rel_proxima_fase.html" class="card" style="background: var(--dark); color:white;">📊 Relatório Qualificação</a>
     </div>
-
 </div>
 
 <script>
-    const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
 
-    async function verificarAcesso() {
-        // 1. Verifica se vieram tokens no hash (vindo do login)
-        const hash   = window.location.hash.replace(/^#/, '');
-        const params = new URLSearchParams(hash);
-        const accessToken  = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    storageKey: 'torneio-admin-session'
+  }
+});
 
-        if (accessToken && refreshToken) {
-            // Restaura a sessão com os tokens recebidos e limpa o hash da URL
-            const { data, error } = await supabaseClient.auth.setSession({
-                access_token:  accessToken,
-                refresh_token: refreshToken
-            });
-            window.history.replaceState(null, '', window.location.pathname);
+async function validarAcesso() {
+    // 1. Tenta pegar a sessão
+    const { data: { session } } = await supabaseClient.auth.getSession();
 
-            if (error || !data.session) {
-                window.location.href = "index.html";
-                return;
-            }
-
-            document.getElementById("user-info").textContent = "Logado como: " + data.session.user.email;
-            return;
+    if (session) {
+        liberarPainel();
+    } else {
+        // 2. Retry: Espera um pouco (útil para o Vercel) e tenta de novo
+        console.log("Sessão não detectada, tentando novamente em 1.5s...");
+        await new Promise(r => setTimeout(r, 1500));
+        const { data: { session: retrySession } } = await supabaseClient.auth.getSession();
+        
+        if (retrySession) {
+            liberarPainel();
+        } else {
+            // 3. Falhou mesmo: Volta para o login
+            window.location.replace("login.html");
         }
-
-        // 2. Sem tokens no hash — verifica sessão normal no localStorage
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) {
-            window.location.href = "index.html";
-            return;
-        }
-
-        document.getElementById("user-info").textContent = "Logado como: " + session.user.email;
     }
+}
 
-    async function fazerLogout() {
-        await supabaseClient.auth.signOut();
-        window.location.href = "index.html";
-    }
+function liberarPainel() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('conteudo').style.display = 'block';
+}
 
-    verificarAcesso();
+async function sair() {
+    await supabaseClient.auth.signOut();
+    window.location.replace("login.html");
+}
+
+validarAcesso();
 </script>
 </body>
 </html>
