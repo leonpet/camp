@@ -10,7 +10,7 @@
         body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; }
         .container { max-width:700px; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-voltar { text-decoration: none; color: var(--primary); font-weight: bold; font-size: 14px; border: 1px solid var(--primary); padding: 5px 12px; border-radius: 5px; transition: 0.3s; }
+        .btn-voltar { color: var(--primary); font-weight: bold; font-size: 14px; border: 1px solid var(--primary); padding: 5px 12px; border-radius: 5px; transition: 0.3s; cursor: pointer; background: white; }
         .btn-voltar:hover { background: var(--primary); color: white; }
         .form-row { display: flex; gap: 10px; margin-bottom: 10px; background: #f9f9f9; padding: 15px; border-radius: 8px; border-left: 5px solid var(--purple); }
         input { padding:12px; border: 1px solid #ddd; border-radius:5px; outline: none; flex: 2; }
@@ -31,7 +31,7 @@
 <div class="container">
     <div class="header">
         <h2 style="margin:0;">🏆 Competições</h2>
-        <a href="menu.html" class="btn-voltar">⬅ Voltar ao Painel</a>
+        <button class="btn-voltar" onclick="voltarMenu()">⬅ Voltar ao Painel</button>
     </div>
     <div class="form-row">
         <input type="hidden" id="id_selecionado">
@@ -49,6 +49,16 @@
 const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Volta ao menu passando os tokens da sessão atual no hash
+async function voltarMenu() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        window.location.href = `menu.html#access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
 
 async function verificarAcesso() {
     const hash   = window.location.hash.replace(/^#/, '');
@@ -73,8 +83,16 @@ async function carregarCompeticoes() {
     const lista  = document.getElementById("lista-competicoes");
     status.innerText = "Buscando dados...";
 
-    const { data, error } = await supabaseClient.from('campeonato_competicao').select('*').order('id_competicao', { ascending: false });
-    if (error) { status.innerText = "Erro: " + error.message; return; }
+    const { data, error } = await supabaseClient
+        .from('campeonato_competicao')
+        .select('*')
+        .order('id_competicao', { ascending: false });
+
+    if (error) {
+        status.innerText = "Erro: " + error.message;
+        console.error("Erro RLS ou permissão:", error);
+        return;
+    }
 
     lista.innerHTML = "";
     status.innerText = data.length === 0 ? "Nenhuma competição registrada." : "";
