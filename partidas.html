@@ -88,11 +88,11 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let equipesCache = [];
+let sessaoAtual  = null;
 
-async function voltarMenu() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        window.location.href = `menu.html#access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
     } else {
         window.location.href = "index.html";
     }
@@ -108,9 +108,11 @@ async function verificarAcesso() {
         const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
         window.history.replaceState(null, '', window.location.pathname);
         if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
     } else {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
     }
 
     inicializar();
@@ -178,23 +180,23 @@ async function carregarPartidas() {
 
 function abrirModalNovo() {
     if (!document.getElementById('filtro_comp').value) return alert("Selecione uma competição primeiro!");
-    document.getElementById('edit_id_partida').value = "";
-    document.getElementById('edit_grupo').value      = "";
-    document.getElementById('edit_gols_a').value     = 0;
-    document.getElementById('edit_gols_b').value     = 0;
-    document.getElementById('edit_status').value     = "Pendente";
+    document.getElementById('edit_id_partida').value  = "";
+    document.getElementById('edit_grupo').value       = "";
+    document.getElementById('edit_gols_a').value      = 0;
+    document.getElementById('edit_gols_b').value      = 0;
+    document.getElementById('edit_status').value      = "Pendente";
     document.getElementById('modal-titulo').innerText = "Nova Partida";
     document.getElementById('modal-partida').style.display = 'flex';
 }
 
 function abrirModalEditar(p) {
-    document.getElementById('edit_id_partida').value = p.id_partida;
-    document.getElementById('edit_grupo').value      = p.grupo;
-    document.getElementById('edit_equipe_a').value   = p.id_equipe_a;
-    document.getElementById('edit_equipe_b').value   = p.id_equipe_b;
-    document.getElementById('edit_gols_a').value     = p.gols_a;
-    document.getElementById('edit_gols_b').value     = p.gols_b;
-    document.getElementById('edit_status').value     = p.status || "Pendente";
+    document.getElementById('edit_id_partida').value  = p.id_partida;
+    document.getElementById('edit_grupo').value       = p.grupo;
+    document.getElementById('edit_equipe_a').value    = p.id_equipe_a;
+    document.getElementById('edit_equipe_b').value    = p.id_equipe_b;
+    document.getElementById('edit_gols_a').value      = p.gols_a;
+    document.getElementById('edit_gols_b').value      = p.gols_b;
+    document.getElementById('edit_status').value      = p.status || "Pendente";
     document.getElementById('modal-titulo').innerText = "Editar Partida #" + p.id_partida;
     document.getElementById('modal-partida').style.display = 'flex';
 }

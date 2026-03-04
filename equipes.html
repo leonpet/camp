@@ -57,10 +57,11 @@ const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-async function voltarMenu() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        window.location.href = `menu.html#access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
+let sessaoAtual = null;
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
     } else {
         window.location.href = "index.html";
     }
@@ -76,9 +77,11 @@ async function verificarAcesso() {
         const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
         window.history.replaceState(null, '', window.location.pathname);
         if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
     } else {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
     }
 
     carregarEquipes();
