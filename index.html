@@ -37,6 +37,7 @@
             cursor: pointer; font-size: 15px; font-weight: bold; color: white; transition: opacity 0.2s;
         }
         button:hover { opacity: 0.88; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-login    { background: #3498db; }
         .btn-cadastro { background: #27ae60; }
         .btn-forgot   { width: 100%; margin-top: 10px; background: #ff9800; flex: none; }
@@ -58,8 +59,8 @@
         <input type="email"    id="email"    placeholder="E-mail" autocomplete="username" />
         <input type="password" id="password" placeholder="Senha"  autocomplete="current-password" />
         <div class="btn-group">
-            <button class="btn-login"    onclick="fazerLogin()">Entrar</button>
-            <button class="btn-cadastro" onclick="fazerCadastro()">Cadastrar</button>
+            <button id="btn-entrar" class="btn-login"    onclick="fazerLogin()">Entrar</button>
+            <button                 class="btn-cadastro" onclick="fazerCadastro()">Cadastrar</button>
         </div>
         <button class="btn-forgot" onclick="mostrarRecuperar()">Esqueci minha senha</button>
     </div>
@@ -101,12 +102,20 @@
         const password = document.getElementById('password').value;
         if (!email || !password) { mostrarMensagem('Preencha e-mail e senha.', 'error'); return; }
 
+        // Desabilita botão para evitar duplo clique
+        const btn = document.getElementById('btn-entrar');
+        btn.disabled = true;
+        btn.textContent = 'Entrando...';
+
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
         if (error) {
             mostrarMensagem('Erro: ' + error.message, 'error');
-        } else {
-            window.location.href = 'menu.html';
+            btn.disabled = false;
+            btn.textContent = 'Entrar';
         }
+        // Não faz redirect aqui — o onAuthStateChange abaixo cuida disso
+        // depois que a sessão for confirmada como gravada
     }
 
     async function fazerCadastro() {
@@ -133,6 +142,14 @@
             setTimeout(() => { document.getElementById('resetEmail').value = ''; mostrarLogin(); }, 3500);
         }
     }
+
+    // Redireciona SOMENTE após o evento SIGNED_IN — garantia de que
+    // a sessão já está gravada no localStorage antes de trocar de página
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            window.location.href = 'menu.html';
+        }
+    });
 
     document.addEventListener('keydown', e => {
         if (e.key !== 'Enter') return;
