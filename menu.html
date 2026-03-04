@@ -14,10 +14,8 @@
         .header h2 { margin: 0; }
         .btn-logout { background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
 
-        .section-title {
-            font-size: 11px; font-weight: bold; text-transform: uppercase;
-            letter-spacing: 1px; color: var(--gray); margin: 20px 0 10px;
-        }
+        .section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin: 20px 0 10px; }
+
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .nav-btn {
             background: #f9f9f9; border: none; border-radius: 12px;
@@ -64,23 +62,23 @@
     <div class="section-title">Cadastros</div>
     <div class="grid">
 
-        <a href="competicoes.html" class="nav-btn purple">
+        <div class="nav-btn purple" onclick="navegar('competicoes.html')">
             <span class="icon">🏆</span>
             <span class="label">Competições</span>
             <span class="desc">Cadastrar e gerenciar competições</span>
-        </a>
+        </div>
 
-        <a href="equipes.html" class="nav-btn blue">
+        <div class="nav-btn blue" onclick="navegar('equipes.html')">
             <span class="icon">🛡️</span>
             <span class="label">Equipes</span>
             <span class="desc">Cadastrar e gerenciar equipes</span>
-        </a>
+        </div>
 
-        <a href="partidas.html" class="nav-btn green">
+        <div class="nav-btn green" onclick="navegar('partidas.html')">
             <span class="icon">⚽</span>
             <span class="label">Partidas</span>
             <span class="desc">Gerenciar e registrar partidas</span>
-        </a>
+        </div>
 
         <!-- Próximos botões aqui -->
 
@@ -92,6 +90,8 @@
     const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let sessaoAtual = null;
 
     async function verificarAcesso() {
         // 1. Verifica se vieram tokens no hash (vindo do login)
@@ -106,24 +106,24 @@
                 refresh_token: refreshToken
             });
             window.history.replaceState(null, '', window.location.pathname);
-
-            if (error || !data.session) {
-                window.location.href = "index.html";
-                return;
-            }
-
-            document.getElementById("user-info").textContent = "Logado como: " + data.session.user.email;
-            return;
+            if (error || !data.session) { window.location.href = "index.html"; return; }
+            sessaoAtual = data.session;
+        } else {
+            // 2. Sem tokens — verifica sessão normal
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = "index.html"; return; }
+            sessaoAtual = session;
         }
 
-        // 2. Sem tokens — verifica sessão normal no localStorage
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) {
-            window.location.href = "index.html";
-            return;
-        }
+        document.getElementById("user-info").textContent = "Logado como: " + sessaoAtual.user.email;
+    }
 
-        document.getElementById("user-info").textContent = "Logado como: " + session.user.email;
+    // Navega passando os tokens no hash para a página destino
+    function navegar(pagina) {
+        if (!sessaoAtual) return;
+        const token   = sessaoAtual.access_token;
+        const refresh = sessaoAtual.refresh_token;
+        window.location.href = `${pagina}#access_token=${token}&refresh_token=${refresh}`;
     }
 
     async function fazerLogout() {

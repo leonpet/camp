@@ -9,41 +9,24 @@
         :root { --primary:#3498db; --success:#27ae60; --danger:#e74c3c; --dark:#2c3e50; --warning:#f39c12; }
         body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; }
         .container { max-width:900px; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-voltar { text-decoration: none; color: var(--primary); font-weight: bold; border: 1px solid var(--primary); padding: 5px 12px; border-radius: 5px; transition: 0.3s; }
         .btn-voltar:hover { background: var(--primary); color: white; }
-
         .top-actions { display: flex; gap: 10px; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; align-items: center; }
         select#filtro_comp { flex: 2; padding: 10px; border-radius: 5px; outline: none; border: 1px solid #ddd; }
         .btn-novo { background: var(--success); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-
-        .partida-card { 
-            display: grid; 
-            grid-template-columns: 1fr auto 1fr auto; 
-            align-items: center; 
-            padding: 12px; 
-            border-bottom: 1px solid #eee; 
-            transition: 0.2s;
-        }
+        .partida-card { display: grid; grid-template-columns: 1fr auto 1fr auto; align-items: center; padding: 12px; border-bottom: 1px solid #eee; transition: 0.2s; }
         .partida-card:hover { background: #f0f7ff; }
-        
         .time { font-size: 14px; cursor: pointer; }
         .time-id { color: #999; font-size: 11px; margin: 0 5px; font-weight: normal; }
         .time-a { text-align: right; font-weight: bold; }
         .time-b { text-align: left; font-weight: bold; }
-        
         .placar-box { display: flex; flex-direction: column; align-items: center; min-width: 140px; cursor: pointer; }
         .placar-numeros { background: var(--dark); color: white; padding: 4px 15px; border-radius: 15px; font-weight: bold; font-size: 16px; }
         .badge-grupo { font-size: 10px; color: #666; margin-bottom: 3px; font-weight: bold; }
-
         .btn-acao-del { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 22px; padding: 0 10px; line-height: 1; }
         .btn-acao-del:hover { transform: scale(1.2); }
-
-        #modal-partida { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100;
-        }
+        #modal-partida { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 450px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
         .modal-row { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; text-align: left; }
         .modal-row select, .modal-row input { padding: 10px; border-radius: 5px; border: 1px solid #ddd; }
@@ -52,59 +35,50 @@
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="header">
         <h2>⚽ Gestão de Partidas</h2>
         <a href="menu.html" class="btn-voltar">⬅ Voltar ao Painel</a>
     </div>
-
     <div class="top-actions">
         <select id="filtro_comp" onchange="carregarPartidas()">
             <option value="">Carregando...</option>
         </select>
         <button class="btn-novo" onclick="abrirModalNovo()">+ Nova Partida</button>
     </div>
-
-    <div id="status-msg" style="text-align: center; color: #666; font-size: 14px; margin-bottom: 10px;"></div>
+    <div id="status-msg" style="text-align:center; color:#666; font-size:14px; margin-bottom:10px;"></div>
     <div id="lista-partidas"></div>
 </div>
 
 <div id="modal-partida">
     <div class="modal-content">
-        <h3 id="modal-titulo" style="margin-top:0; color: var(--dark);">Configurar Partida</h3>
+        <h3 id="modal-titulo" style="margin-top:0; color:var(--dark);">Configurar Partida</h3>
         <input type="hidden" id="edit_id_partida">
-        
         <div class="modal-row">
-            <label style="font-size: 12px; font-weight: bold;">Grupo</label>
+            <label style="font-size:12px; font-weight:bold;">Grupo</label>
             <input type="text" id="edit_grupo" placeholder="Ex: A">
-            
-            <label style="font-size: 12px; font-weight: bold;">Time 1 (Mandante)</label>
+            <label style="font-size:12px; font-weight:bold;">Time 1 (Mandante)</label>
             <select id="edit_equipe_a"></select>
-            
-            <label style="font-size: 12px; font-weight: bold;">Time 2 (Visitante)</label>
+            <label style="font-size:12px; font-weight:bold;">Time 2 (Visitante)</label>
             <select id="edit_equipe_b"></select>
-            
             <div class="modal-grid-gols">
                 <div>
-                    <label style="font-size: 12px; font-weight: bold;">Gols T1</label>
+                    <label style="font-size:12px; font-weight:bold;">Gols T1</label>
                     <input type="number" id="edit_gols_a" value="0" style="width:100%">
                 </div>
                 <div>
-                    <label style="font-size: 12px; font-weight: bold;">Gols T2</label>
+                    <label style="font-size:12px; font-weight:bold;">Gols T2</label>
                     <input type="number" id="edit_gols_b" value="0" style="width:100%">
                 </div>
             </div>
-
-            <label style="font-size: 12px; font-weight: bold;">Status</label>
+            <label style="font-size:12px; font-weight:bold;">Status</label>
             <select id="edit_status">
                 <option value="Pendente">Pendente</option>
                 <option value="Finalizado">Finalizado</option>
             </select>
         </div>
-
         <button class="btn-save-modal" onclick="salvarPartida()">Gravar Partida</button>
-        <button onclick="fecharModal()" style="background:none; border:none; color:#999; margin-top:10px; width:100%; cursor:pointer; font-size: 13px;">Cancelar / Fechar</button>
+        <button onclick="fecharModal()" style="background:none; border:none; color:#999; margin-top:10px; width:100%; cursor:pointer; font-size:13px;">Cancelar / Fechar</button>
     </div>
 </div>
 
@@ -116,11 +90,20 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let equipesCache = [];
 
 async function verificarAcesso() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) {
-        window.location.href = "index.html";
-        return;
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
     }
+
     inicializar();
 }
 
@@ -144,13 +127,12 @@ async function inicializar() {
 }
 
 async function carregarPartidas() {
-    const compId = document.getElementById('filtro_comp').value;
-    const lista = document.getElementById('lista-partidas');
+    const compId    = document.getElementById('filtro_comp').value;
+    const lista     = document.getElementById('lista-partidas');
     const statusDiv = document.getElementById('status-msg');
     if (!compId) { lista.innerHTML = ""; statusDiv.innerText = ""; return; }
 
     statusDiv.innerText = "Buscando partidas...";
-
     const { data, error } = await supabaseClient
         .from('campeonato_partida')
         .select('*, time_a:id_equipe_a(nome_equipe), time_b:id_equipe_b(nome_equipe)')
@@ -174,7 +156,7 @@ async function carregarPartidas() {
             <div class="placar-box" onclick='abrirModalEditar(${JSON.stringify(p)})'>
                 <span class="badge-grupo">GR ${p.grupo}</span>
                 <span class="placar-numeros">${p.gols_a} x ${p.gols_b}</span>
-                <span style="font-size:9px; font-weight:bold; color:${corStatus}; margin-top:4px; text-transform:uppercase; letter-spacing:0.5px;">${p.status || 'Pendente'}</span>
+                <span style="font-size:9px; font-weight:bold; color:${corStatus}; margin-top:4px; text-transform:uppercase;">${p.status || 'Pendente'}</span>
             </div>
             <div class="time time-b" onclick='abrirModalEditar(${JSON.stringify(p)})'>
                 ${p.time_b?.nome_equipe || 'N/A'} <span class="time-id">${p.id_equipe_b}</span>
@@ -188,22 +170,22 @@ async function carregarPartidas() {
 function abrirModalNovo() {
     if (!document.getElementById('filtro_comp').value) return alert("Selecione uma competição primeiro!");
     document.getElementById('edit_id_partida').value = "";
-    document.getElementById('edit_grupo').value = "";
-    document.getElementById('edit_gols_a').value = 0;
-    document.getElementById('edit_gols_b').value = 0;
-    document.getElementById('edit_status').value = "Pendente";
+    document.getElementById('edit_grupo').value      = "";
+    document.getElementById('edit_gols_a').value     = 0;
+    document.getElementById('edit_gols_b').value     = 0;
+    document.getElementById('edit_status').value     = "Pendente";
     document.getElementById('modal-titulo').innerText = "Nova Partida";
     document.getElementById('modal-partida').style.display = 'flex';
 }
 
 function abrirModalEditar(p) {
     document.getElementById('edit_id_partida').value = p.id_partida;
-    document.getElementById('edit_grupo').value = p.grupo;
-    document.getElementById('edit_equipe_a').value = p.id_equipe_a;
-    document.getElementById('edit_equipe_b').value = p.id_equipe_b;
-    document.getElementById('edit_gols_a').value = p.gols_a;
-    document.getElementById('edit_gols_b').value = p.gols_b;
-    document.getElementById('edit_status').value = p.status || "Pendente";
+    document.getElementById('edit_grupo').value      = p.grupo;
+    document.getElementById('edit_equipe_a').value   = p.id_equipe_a;
+    document.getElementById('edit_equipe_b').value   = p.id_equipe_b;
+    document.getElementById('edit_gols_a').value     = p.gols_a;
+    document.getElementById('edit_gols_b').value     = p.gols_b;
+    document.getElementById('edit_status').value     = p.status || "Pendente";
     document.getElementById('modal-titulo').innerText = "Editar Partida #" + p.id_partida;
     document.getElementById('modal-partida').style.display = 'flex';
 }
@@ -211,26 +193,23 @@ function abrirModalEditar(p) {
 function fecharModal() { document.getElementById('modal-partida').style.display = 'none'; }
 
 async function salvarPartida() {
-    const id = document.getElementById('edit_id_partida').value;
+    const id     = document.getElementById('edit_id_partida').value;
     const compId = document.getElementById('filtro_comp').value;
-    const dados = {
+    const dados  = {
         id_competicao: compId,
-        grupo: document.getElementById('edit_grupo').value.toUpperCase(),
+        grupo:      document.getElementById('edit_grupo').value.toUpperCase(),
         id_equipe_a: document.getElementById('edit_equipe_a').value,
         id_equipe_b: document.getElementById('edit_equipe_b').value,
-        gols_a: parseInt(document.getElementById('edit_gols_a').value) || 0,
-        gols_b: parseInt(document.getElementById('edit_gols_b').value) || 0,
-        status: document.getElementById('edit_status').value
+        gols_a:  parseInt(document.getElementById('edit_gols_a').value) || 0,
+        gols_b:  parseInt(document.getElementById('edit_gols_b').value) || 0,
+        status:  document.getElementById('edit_status').value
     };
 
     if (dados.id_equipe_a === dados.id_equipe_b) return alert("Uma equipe não pode jogar contra ela mesma!");
 
-    let res;
-    if (id) {
-        res = await supabaseClient.from('campeonato_partida').update(dados).eq('id_partida', id);
-    } else {
-        res = await supabaseClient.from('campeonato_partida').insert([dados]);
-    }
+    const res = id
+        ? await supabaseClient.from('campeonato_partida').update(dados).eq('id_partida', id)
+        : await supabaseClient.from('campeonato_partida').insert([dados]);
 
     if (res.error) alert("Erro ao salvar: " + res.error.message);
     else { fecharModal(); carregarPartidas(); }
