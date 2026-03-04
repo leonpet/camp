@@ -6,7 +6,7 @@
     <title>Painel do Campeonato</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary:#3498db; --success:#27ae60; --danger:#e74c3c; --gray:#95a5a6; --gold:#f1c40f; --purple:#9b59b6; }
+        :root { --primary:#3498db; --success:#27ae60; --danger:#e74c3c; --gray:#95a5a6; --gold:#f1c40f; --purple:#9b59b6; --orange:#e67e22; --dark:#2c3e50; --vinculo:#8e44ad; }
         body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; }
         .container { max-width:700px; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
 
@@ -36,6 +36,9 @@
         .nav-btn.gold   { border-bottom-color: var(--gold);    }
         .nav-btn.gray   { border-bottom-color: var(--gray);    }
         .nav-btn.purple { border-bottom-color: var(--purple);  }
+        .nav-btn.orange { border-bottom-color: var(--orange);  }
+        .nav-btn.dark   { border-bottom-color: var(--dark);    }
+        .nav-btn.vinculo{ border-bottom-color: var(--vinculo); }
 
         #user-info { font-size: 13px; color: var(--gray); }
 
@@ -59,6 +62,7 @@
         <button class="btn-logout" onclick="fazerLogout()">Sair</button>
     </div>
 
+    <!-- CADASTROS -->
     <div class="section-title">Cadastros</div>
     <div class="grid">
 
@@ -74,13 +78,71 @@
             <span class="desc">Cadastrar e gerenciar equipes</span>
         </div>
 
+        <div class="nav-btn blue" onclick="navegar('jogadores.html')">
+            <span class="icon">🏃</span>
+            <span class="label">Jogadores</span>
+            <span class="desc">Cadastrar e gerenciar jogadores</span>
+        </div>
+
+        <div class="nav-btn vinculo" onclick="navegar('vinculos.html')">
+            <span class="icon">🔗</span>
+            <span class="label">Vínculos</span>
+            <span class="desc">Vincular jogadores a equipes</span>
+        </div>
+
+    </div>
+
+    <!-- COMPETIÇÃO -->
+    <div class="section-title">Competição</div>
+    <div class="grid">
+
+        <div class="nav-btn orange" onclick="navegar('inscricoes.html')">
+            <span class="icon">📝</span>
+            <span class="label">Inscrições</span>
+            <span class="desc">Inscrever equipes e definir grupos</span>
+        </div>
+
+        <div class="nav-btn dark" onclick="navegar('sorteio.html')">
+            <span class="icon">🎲</span>
+            <span class="label">Gerar Confrontos</span>
+            <span class="desc">Sortear partidas por grupo</span>
+        </div>
+
         <div class="nav-btn green" onclick="navegar('partidas.html')">
             <span class="icon">⚽</span>
             <span class="label">Partidas</span>
             <span class="desc">Gerenciar e registrar partidas</span>
         </div>
 
-        <!-- Próximos botões aqui -->
+        <div class="nav-btn gold" onclick="navegar('gols.html')">
+            <span class="icon">🥅</span>
+            <span class="label">Gols</span>
+            <span class="desc">Registrar artilharia</span>
+        </div>
+
+    </div>
+
+    <!-- RELATÓRIOS -->
+    <div class="section-title">Relatórios</div>
+    <div class="grid">
+
+        <div class="nav-btn blue" onclick="navegar('classificacao.html')">
+            <span class="icon">📊</span>
+            <span class="label">Classificação</span>
+            <span class="desc">Tabela por grupos</span>
+        </div>
+
+        <div class="nav-btn blue" onclick="navegar('relatorio_classificacao.html')">
+            <span class="icon">📋</span>
+            <span class="label">Geral</span>
+            <span class="desc">Classificação geral da competição</span>
+        </div>
+
+        <div class="nav-btn green" onclick="navegar('qualificacao.html')">
+            <span class="icon">🎯</span>
+            <span class="label">Qualificados</span>
+            <span class="desc">Classificados e eliminados</span>
+        </div>
 
     </div>
 
@@ -94,22 +156,17 @@
     let sessaoAtual = null;
 
     async function verificarAcesso() {
-        // 1. Verifica se vieram tokens no hash (vindo do login)
         const hash   = window.location.hash.replace(/^#/, '');
         const params = new URLSearchParams(hash);
         const accessToken  = params.get('access_token');
         const refreshToken = params.get('refresh_token');
 
         if (accessToken && refreshToken) {
-            const { data, error } = await supabaseClient.auth.setSession({
-                access_token:  accessToken,
-                refresh_token: refreshToken
-            });
+            const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
             window.history.replaceState(null, '', window.location.pathname);
             if (error || !data.session) { window.location.href = "index.html"; return; }
             sessaoAtual = data.session;
         } else {
-            // 2. Sem tokens — verifica sessão normal
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) { window.location.href = "index.html"; return; }
             sessaoAtual = session;
@@ -118,12 +175,9 @@
         document.getElementById("user-info").textContent = "Logado como: " + sessaoAtual.user.email;
     }
 
-    // Navega passando os tokens no hash para a página destino
     function navegar(pagina) {
         if (!sessaoAtual) return;
-        const token   = sessaoAtual.access_token;
-        const refresh = sessaoAtual.refresh_token;
-        window.location.href = `${pagina}#access_token=${token}&refresh_token=${refresh}`;
+        window.location.href = `${pagina}#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
     }
 
     async function fazerLogout() {

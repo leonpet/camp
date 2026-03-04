@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Qualificação Hierárquico</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .btn-voltar { color: var(--accent); font-weight: bold; border: 1px solid var(--accent); padding: 8px 15px; border-radius: 6px; cursor: pointer; background: white; transition: 0.3s; }
+        .btn-voltar:hover { background: var(--accent); color: white; }
+        .secao-titulo { padding: 10px; margin-top: 20px; font-weight: bold; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; color: white; border-radius: 4px 4px 0 0; }
+        .bg-vencedores { background: #27ae60; }
+        .bg-segundos   { background: #f1c40f; color: #2c3e50; }
+        .bg-eliminados { background: #e74c3c; }
+        select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; width: 100%; max-width: 400px; margin-bottom: 20px; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: white; }
+        th { background: #f8f9fa; color: #7f8c8d; font-size: 11px; text-transform: uppercase; padding: 12px; border: 1px solid #eee; }
+        td { padding: 10px; border: 1px solid #eee; text-align: center; font-size: 14px; }
+        .time-nome      { text-align: left; font-weight: bold; }
+        .primeiro-lugar { background-color: #d4edda !important; }
+        .melhor-segundo { background-color: #fff3cd !important; }
+        .eliminado      { background-color: #f8d7da !important; }
+        .status-msg { text-align: center; padding: 40px; color: #7f8c8d; }
+        @media print { .btn-voltar, select { display: none; } .container { box-shadow: none; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0;">🏆 Relatório de Classificados</h2>
+        <button class="btn-voltar" onclick="voltarMenu()">Voltar</button>
+    </div>
+
+    <select id="select_comp" onchange="gerarRelatorio()">
+        <option value="">Carregando competições...</option>
+    </select>
+
+    <div id="tabela-resultados">
+        <div class="status-msg">Selecione uma competição para processar o ranking.</div>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessaoAtual = null;
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+
+    inicializar();
+}
+
+async function inicializar() {
+    const { data } = await supabaseClient.from('campeonato_competicao').select('*').order('competicao');
+    const sel = document.getElementById('select_comp');
+    if (data) {
+        sel.innerHTML = '<option value="">-- Escolha a Competição --</option>';
+        data.forEach(c => sel.innerHTML += `<option value="${c.id_competicao}">${c.competicao}</option>`);
+    }
+}
+
+async function gerarRelatorio() {
+    const compId = document.getElementById('select_comp').value;
+    if (!compId) return;
+
+    document.getElementById('tabela-resultados').innerHTML = '<div class="status-msg">Processando classificação...</div>';
+
+    const { data: inscritos } = await supabaseClient
+        .from('campeonato_inscricao')
+        .select('id_equipe, grupo, campeonato_equipe(nome_equipe, ranking_atual)')
+        .eq('id_competicao', compId);
+
+    const { data: partidas } = await supabaseClient
+        .from('campeonato_partida')
+        .select('*')
+        .eq('id_competicao', compId)
+        .eq('status', 'Finalizado');
+
+    if (inscritos) processarDados(inscritos, partidas || []);
+}
+
+function processarDados(inscritos, partidas) {
+    let base = {};
+    inscritos.forEach(i => {
+        base[i.id_equipe] = {
+            id: i.id_equipe, nome: i.campeonato_equipe.nome_equipe,
+            grupo: i.grupo || '-', ranking_base: i.campeonato_equipe.ranking_atual || 0,
+            j: 0, v: 0, e: 0, d: 0, gp: 0, gc: 0, pts: 0
+        };
+    });
+
+    partidas.forEach(p => {
+        const tA = p.id_equipe_a; const tB = p.id_equipe_b;
+        if (base[tA] && base[tB]) {
+            base[tA].j++; base[tB].j++;
+            base[tA].gp += p.gols_a; base[tA].gc += p.gols_b;
+            base[tB].gp += p.gols_b; base[tB].gc += p.gols_a;
+            if (p.gols_a > p.gols_b)      { base[tA].pts += 3; base[tA].v++; base[tB].d++; }
+            else if (p.gols_a < p.gols_b) { base[tB].pts += 3; base[tB].v++; base[tA].d++; }
+            else                           { base[tA].pts += 1; base[tB].pts += 1; base[tA].e++; base[tB].e++; }
+        }
+    });
+
+    let listaGeral = Object.values(base).map(t => ({ ...t, sg: t.gp - t.gc }));
+    let grupos = {};
+    listaGeral.forEach(t => {
+        if (!grupos[t.grupo]) grupos[t.grupo] = [];
+        grupos[t.grupo].push(t);
+    });
+
+    const criterio = (a, b) => b.pts - a.pts || b.v - a.v || b.gp - a.gp || b.sg - a.sg || a.ranking_base - b.ranking_base;
+
+    let vencedores = [], candidatosSegundos = [], outros = [];
+
+    Object.keys(grupos).forEach(g => {
+        grupos[g].sort(criterio);
+        grupos[g].forEach((time, index) => {
+            if (index === 0)      vencedores.push(time);
+            else if (index === 1) candidatosSegundos.push(time);
+            else                  outros.push(time);
+        });
+    });
+
+    candidatosSegundos.sort(criterio);
+    let melhoresSegundos   = candidatosSegundos.slice(0, 5);
+    let segundosEliminados = candidatosSegundos.slice(5);
+    let listaEliminados    = [...segundosEliminados, ...outros].sort(criterio);
+
+    vencedores.sort(criterio);
+    melhoresSegundos.sort(criterio);
+
+    renderizar(vencedores, melhoresSegundos, listaEliminados);
+}
+
+function renderizar(venc, seg, elim) {
+    const container = document.getElementById('tabela-resultados');
+    container.innerHTML = '';
+
+    const criarTabela = (titulo, classeFundo, classeLinha, dados) => {
+        if (dados.length === 0) return '';
+        return `
+            <div class="secao-titulo ${classeFundo}">${titulo}</div>
+            <table>
+                <thead>
+                    <tr><th class="time-nome">Equipe</th><th>Grupo</th><th>J</th><th>V</th><th>GP</th><th>SG</th><th>PTS</th><th>Rank</th></tr>
+                </thead>
+                <tbody>
+                    ${dados.map(t => `
+                        <tr class="${classeLinha}">
+                            <td class="time-nome">${t.nome}</td>
+                            <td>${t.grupo}</td>
+                            <td>${t.j}</td><td>${t.v}</td><td>${t.gp}</td><td>${t.sg}</td>
+                            <td><strong>${t.pts}</strong></td><td>${t.ranking_base}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    };
+
+    container.innerHTML += criarTabela('Vencedores de Grupo (Classificados)', 'bg-vencedores', 'primeiro-lugar', venc);
+    container.innerHTML += criarTabela('Melhores 2º Colocados (Classificados)', 'bg-segundos', 'melhor-segundo', seg);
+    container.innerHTML += criarTabela('Equipes Eliminadas', 'bg-eliminados', 'eliminado', elim);
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>

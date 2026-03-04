@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteio Equilibrado - Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary:#3498db; --success:#27ae60; --dark:#2c3e50; }
+        body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; }
+        .container { max-width:600px; margin:auto; background:white; padding:25px; border-radius:12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-voltar { color: var(--primary); font-weight: bold; border: 1px solid var(--primary); padding: 5px 15px; border-radius: 5px; transition: 0.3s; cursor: pointer; background: white; }
+        .btn-voltar:hover { background: var(--primary); color: white; }
+        select { padding: 12px; border-radius: 5px; border: 1px solid #ddd; width: 100%; margin-bottom: 15px; }
+        .btn-gerar { background: var(--dark); color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-gerar:hover { background: #1a252f; }
+        #status-msg { margin-top: 20px; padding: 10px; border-radius: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>🎲 Gerar Confrontos</h2>
+        <button class="btn-voltar" onclick="voltarMenu()">⬅ Painel</button>
+    </div>
+
+    <div style="background:#fffbe6; padding:15px; border-radius:5px; font-size:13px; margin-bottom:15px; border:1px solid #ffe58f; line-height:1.4;">
+        <strong>Regra aplicada:</strong> Todos contra todos no grupo.<br>
+        Cada equipe fará 4 jogos (2 como mandante e 2 como visitante), assumindo grupos de 5 equipes.
+    </div>
+
+    <label>Selecione a Competição:</label>
+    <select id="select_competicao">
+        <option value="">Verificando autenticação...</option>
+    </select>
+
+    <button class="btn-gerar" onclick="gerarConfrontos()">Gerar Partidas por Grupo</button>
+
+    <div id="status-msg"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessaoAtual = null;
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+
+    carregarCompeticoes();
+}
+
+async function carregarCompeticoes() {
+    const { data, error } = await supabaseClient.from('campeonato_competicao').select('*').order('competicao');
+    if (error) { alert("Erro ao carregar competições: " + error.message); return; }
+
+    const sel = document.getElementById('select_competicao');
+    sel.innerHTML = '<option value="">Escolha uma competição...</option>';
+    data.forEach(c => sel.innerHTML += `<option value="${c.id_competicao}">${c.competicao}</option>`);
+}
+
+async function gerarConfrontos() {
+    const btn    = document.querySelector('.btn-gerar');
+    const compId = document.getElementById('select_competicao').value;
+    if (!compId) return alert("Selecione uma competição!");
+
+    btn.disabled  = true;
+    btn.innerText = "Processando...";
+
+    const { data: inscritos, error } = await supabaseClient
+        .from('campeonato_inscricao')
+        .select('id_equipe, grupo')
+        .eq('id_competicao', compId);
+
+    if (error || !inscritos || inscritos.length === 0) {
+        alert("Nenhuma equipe inscrita nesta competição.");
+        btn.disabled  = false;
+        btn.innerText = "Gerar Partidas por Grupo";
+        return;
+    }
+
+    const grupos = {};
+    inscritos.forEach(ins => {
+        if (!grupos[ins.grupo]) grupos[ins.grupo] = [];
+        grupos[ins.grupo].push(ins.id_equipe);
+    });
+
+    let todasPartidas = [];
+
+    for (const grupo in grupos) {
+        const ids = grupos[grupo];
+        if (ids.length < 2) continue;
+
+        if (ids.length !== 5) {
+            if (!confirm(`O grupo ${grupo} tem ${ids.length} equipes. O equilíbrio 2/2 mandos é ideal para 5 equipes. Deseja continuar?`)) continue;
+        }
+
+        let confrontosGrupo = [];
+        for (let i = 0; i < ids.length; i++) {
+            for (let j = i + 1; j < ids.length; j++) {
+                confrontosGrupo.push([ids[i], ids[j]]);
+            }
+        }
+
+        const partidasFormatadas = confrontosGrupo.map((par, index) => {
+            const inverter = index % 2 === 0;
+            return {
+                id_competicao: compId,
+                grupo: grupo,
+                id_equipe_a: inverter ? par[1] : par[0],
+                id_equipe_b: inverter ? par[0] : par[1],
+                status: 'Pendente'
+            };
+        });
+
+        todasPartidas = todasPartidas.concat(partidasFormatadas);
+    }
+
+    if (todasPartidas.length === 0) {
+        alert("Nenhuma partida pôde ser gerada.");
+        btn.disabled  = false;
+        btn.innerText = "Gerar Partidas por Grupo";
+        return;
+    }
+
+    const { error: errorIns } = await supabaseClient.from('campeonato_partida').insert(todasPartidas);
+
+    if (errorIns) {
+        alert("Erro ao salvar partidas: " + errorIns.message);
+        btn.disabled  = false;
+        btn.innerText = "Gerar Partidas por Grupo";
+    } else {
+        document.getElementById('status-msg').innerHTML = `<b style="color:green">✅ Sucesso! ${todasPartidas.length} partidas geradas.</b>`;
+        setTimeout(() => {
+            window.location.href = `partidas.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+        }, 1500);
+    }
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>
