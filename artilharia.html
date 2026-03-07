@@ -8,7 +8,7 @@
     <style>
         :root { --primary:#2c3e50; --accent:#3498db; --gold:#f1c40f; --bg:#f4f7f6; --gray:#7f8c8d; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
         .btn-voltar { color: var(--accent); font-weight: bold; border: 1px solid var(--accent); padding: 8px 15px; border-radius: 6px; cursor: pointer; background: white; transition: 0.3s; }
         .btn-voltar:hover { background: var(--accent); color: white; }
@@ -16,14 +16,18 @@
         .filtro-area { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
         select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; width: 100%; max-width: 500px; font-size: 15px; outline: none; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background: #f8f9fa; color: var(--gray); font-size: 11px; text-transform: uppercase; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: center; }
-        td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
+        /* Tabela principal */
+        table.tabela-principal { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.tabela-principal th { background: #f8f9fa; color: var(--gray); font-size: 11px; text-transform: uppercase; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: center; }
+        table.tabela-principal td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
 
-        .pos-col { font-weight: bold; color: var(--gray); width: 50px; }
+        .linha-jogador { cursor: pointer; transition: filter 0.15s; }
+        .linha-jogador:hover { filter: brightness(0.96); }
+
+        .pos-col     { font-weight: bold; color: var(--gray); width: 50px; }
         .jogador-col { text-align: left; font-weight: bold; color: var(--primary); }
-        .equipe-col { text-align: left; color: var(--gray); font-size: 13px; }
-        .gols-col { font-weight: bold; font-size: 16px; color: var(--primary); }
+        .equipe-col  { text-align: left; color: var(--gray); font-size: 13px; }
+        .seta-col    { width: 30px; color: var(--accent); font-size: 13px; transition: transform 0.2s; }
 
         .medalha-1 { background: #fffde7; }
         .medalha-2 { background: #f5f5f5; }
@@ -31,9 +35,42 @@
 
         .badge-gols { background: var(--gold); color: var(--primary); padding: 3px 10px; border-radius: 12px; font-weight: bold; font-size: 15px; }
 
+        /* Sub-menu expansível */
+        .linha-detalhe { display: none; }
+        .linha-detalhe.aberto { display: table-row; }
+        .detalhe-cell { padding: 0 !important; border-bottom: 3px solid var(--accent) !important; }
+
+        .detalhe-inner {
+            background: #f0f7ff;
+            padding: 16px 24px;
+            border-left: 4px solid var(--accent);
+        }
+        .detalhe-titulo {
+            font-size: 12px; font-weight: bold; text-transform: uppercase;
+            color: var(--accent); letter-spacing: 1px; margin-bottom: 12px;
+        }
+
+        table.tabela-partidas { width: 100%; border-collapse: collapse; font-size: 13px; }
+        table.tabela-partidas th {
+            background: #dbeeff; color: var(--primary);
+            padding: 8px 12px; text-align: left;
+            font-size: 11px; text-transform: uppercase;
+            border-bottom: 1px solid #c5d9f0;
+        }
+        table.tabela-partidas td { padding: 9px 12px; border-bottom: 1px solid #dde8f5; }
+        table.tabela-partidas tr:last-child td { border-bottom: none; }
+        table.tabela-partidas tr:hover td { background: #e5f1ff; }
+
+        .badge-mini { background: var(--gold); color: var(--primary); padding: 2px 9px; border-radius: 10px; font-weight: bold; font-size: 12px; }
+        .vs { color: var(--gray); margin: 0 4px; }
+
         .status-msg { text-align: center; padding: 40px; color: var(--gray); font-style: italic; }
 
-        @media print { .btn-voltar, .filtro-area { display: none; } .container { box-shadow: none; } }
+        @media print {
+            .btn-voltar, .filtro-area { display: none; }
+            .container { box-shadow: none; }
+            .linha-detalhe { display: table-row !important; }
+        }
     </style>
 </head>
 <body>
@@ -61,6 +98,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let sessaoAtual = null;
+let golsRaw     = [];   // todos os gols carregados, reutilizados no detalhe
 
 function voltarMenu() {
     if (sessaoAtual) {
@@ -108,22 +146,30 @@ async function gerarRelatorio() {
     const conteudo = document.getElementById('conteudo');
     if (!compId) return;
 
+    golsRaw = [];
     conteudo.innerHTML = '<div class="status-msg">Calculando artilharia...</div>';
 
-    // Busca gols das partidas desta competição
+    // Busca gols com tudo necessário para o ranking e para o detalhe
     const { data: gols, error } = await supabaseClient
         .from('campeonato_gol')
         .select(`
             gol_marcado,
             campeonato_jogador(id_jogador, nome_jogador),
-            campeonato_partida!inner(id_partida, id_competicao)
+            campeonato_partida!inner(
+                id_partida, id_competicao, grupo,
+                equipe_a:campeonato_equipe!campeonato_partida_id_equipe_a_fkey(nome_equipe),
+                equipe_b:campeonato_equipe!campeonato_partida_id_equipe_b_fkey(nome_equipe),
+                campeonato_competicao(competicao)
+            )
         `)
         .eq('campeonato_partida.id_competicao', compId);
 
     if (error) { conteudo.innerHTML = `<div class="status-msg">Erro: ${error.message}</div>`; return; }
     if (!gols || gols.length === 0) { conteudo.innerHTML = '<div class="status-msg">Nenhum gol registrado nesta competição.</div>'; return; }
 
-    // Agrupa gols por jogador
+    golsRaw = gols;
+
+    // Agrupa total de gols por jogador
     const mapa = {};
     gols.forEach(g => {
         const jogador = g.campeonato_jogador;
@@ -135,7 +181,7 @@ async function gerarRelatorio() {
         mapa[id].total += g.gol_marcado || 0;
     });
 
-    // Para cada jogador, busca o último vínculo (maior data_entrada)
+    // Busca equipe atual (último vínculo por data_entrada)
     const ids = Object.keys(mapa);
     if (ids.length > 0) {
         const { data: vinculos } = await supabaseClient
@@ -145,7 +191,6 @@ async function gerarRelatorio() {
             .order('data_entrada', { ascending: false });
 
         if (vinculos) {
-            // Pega apenas o primeiro registro por jogador (mais recente)
             const vistos = new Set();
             vinculos.forEach(v => {
                 if (!vistos.has(v.numero_jogador)) {
@@ -158,34 +203,112 @@ async function gerarRelatorio() {
         }
     }
 
-    // Ordena por total de gols
-    const lista = Object.values(mapa).sort((a, b) => b.total - a.total);
-
-    if (lista.length === 0) { conteudo.innerHTML = '<div class="status-msg">Nenhum gol registrado nesta competição.</div>'; return; }
-
+    const lista    = Object.values(mapa).sort((a, b) => b.total - a.total);
     const medalhas = ['🥇', '🥈', '🥉'];
     const classes  = ['medalha-1', 'medalha-2', 'medalha-3'];
 
+    let linhas = '';
+    lista.forEach((j, idx) => {
+        const classe = classes[idx] || '';
+        linhas += `
+            <tr class="linha-jogador ${classe}" onclick="toggleDetalhe(${j.id})">
+                <td class="pos-col">${medalhas[idx] || (idx + 1) + 'º'}</td>
+                <td class="jogador-col">${j.nome}</td>
+                <td class="equipe-col">${j.equipe}</td>
+                <td><span class="badge-gols">${j.total}</span></td>
+                <td class="seta-col" id="seta-${j.id}">▼</td>
+            </tr>
+            <tr class="linha-detalhe" id="detalhe-${j.id}">
+                <td class="detalhe-cell" colspan="5">
+                    <div class="detalhe-inner" id="inner-${j.id}"></div>
+                </td>
+            </tr>
+        `;
+    });
+
     conteudo.innerHTML = `
-        <table>
+        <table class="tabela-principal">
             <thead>
                 <tr>
                     <th class="pos-col">Pos.</th>
                     <th style="text-align:left;">Jogador</th>
                     <th style="text-align:left;">Equipe Atual</th>
                     <th>Gols</th>
+                    <th></th>
                 </tr>
             </thead>
-            <tbody>
-                ${lista.map((j, idx) => `
-                    <tr class="${classes[idx] || ''}">
-                        <td class="pos-col">${medalhas[idx] || (idx + 1) + 'º'}</td>
-                        <td class="jogador-col">${j.nome}</td>
-                        <td class="equipe-col">${j.equipe}</td>
-                        <td><span class="badge-gols">${j.total}</span></td>
-                    </tr>
-                `).join('')}
-            </tbody>
+            <tbody>${linhas}</tbody>
+        </table>
+    `;
+}
+
+function toggleDetalhe(jogadorId) {
+    const linhaDetalhe = document.getElementById(`detalhe-${jogadorId}`);
+    const seta         = document.getElementById(`seta-${jogadorId}`);
+    const inner        = document.getElementById(`inner-${jogadorId}`);
+    const estaAberto   = linhaDetalhe.classList.contains('aberto');
+
+    // Fecha todos
+    document.querySelectorAll('.linha-detalhe.aberto').forEach(el => el.classList.remove('aberto'));
+    document.querySelectorAll('.seta-col').forEach(el => el.textContent = '▼');
+
+    if (!estaAberto) {
+        linhaDetalhe.classList.add('aberto');
+        seta.textContent = '▲';
+        preencherDetalhe(jogadorId, inner);
+    }
+}
+
+function preencherDetalhe(jogadorId, inner) {
+    const golsJogador = golsRaw.filter(g => g.campeonato_jogador?.id_jogador === jogadorId);
+
+    if (!golsJogador.length) {
+        inner.innerHTML = '<p style="color:var(--gray);font-size:13px;margin:0;">Nenhuma partida encontrada.</p>';
+        return;
+    }
+
+    // Agrupa gols por partida
+    const porPartida = {};
+    golsJogador.forEach(g => {
+        const p = g.campeonato_partida;
+        if (!p) return;
+        const pid = p.id_partida;
+        if (!porPartida[pid]) {
+            porPartida[pid] = {
+                id:         pid,
+                competicao: p.campeonato_competicao?.competicao || '-',
+                grupo:      p.grupo || '-',
+                equipe_a:   p.equipe_a?.nome_equipe || '?',
+                equipe_b:   p.equipe_b?.nome_equipe || '?',
+                gols:       0
+            };
+        }
+        porPartida[pid].gols += g.gol_marcado || 0;
+    });
+
+    const partidas = Object.values(porPartida).sort((a, b) => a.id - b.id);
+
+    const linhas = partidas.map(p => `
+        <tr>
+            <td>${p.competicao}</td>
+            <td style="text-align:center; font-weight:bold;">Grupo ${p.grupo}</td>
+            <td>${p.equipe_a} <span class="vs">×</span> ${p.equipe_b}</td>
+            <td style="text-align:center;"><span class="badge-mini">${p.gols} gol${p.gols !== 1 ? 's' : ''}</span></td>
+        </tr>
+    `).join('');
+
+    inner.innerHTML = `
+        <div class="detalhe-titulo">⚽ Partidas com gols marcados</div>
+        <table class="tabela-partidas">
+            <thead>
+                <tr>
+                    <th>Competição</th>
+                    <th style="text-align:center;">Grupo</th>
+                    <th>Partida</th>
+                    <th style="text-align:center;">Gols</th>
+                </tr>
+            </thead>
+            <tbody>${linhas}</tbody>
         </table>
     `;
 }
