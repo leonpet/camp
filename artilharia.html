@@ -156,7 +156,7 @@ async function gerarRelatorio() {
             gol_marcado,
             campeonato_jogador(id_jogador, nome_jogador),
             campeonato_partida!inner(
-                id_partida, id_competicao, grupo,
+                id_partida, id_competicao, grupo, gols_a, gols_b,
                 equipe_a:campeonato_equipe!campeonato_partida_id_equipe_a_fkey(nome_equipe),
                 equipe_b:campeonato_equipe!campeonato_partida_id_equipe_b_fkey(nome_equipe),
                 campeonato_competicao(competicao)
@@ -280,6 +280,8 @@ function preencherDetalhe(jogadorId, inner) {
                 grupo:      p.grupo || '-',
                 equipe_a:   p.equipe_a?.nome_equipe || '?',
                 equipe_b:   p.equipe_b?.nome_equipe || '?',
+                gols_a:     p.gols_a ?? '-',
+                gols_b:     p.gols_b ?? '-',
                 gols:       0
             };
         }
@@ -293,6 +295,7 @@ function preencherDetalhe(jogadorId, inner) {
             <td>${p.competicao}</td>
             <td style="text-align:center; font-weight:bold;">Grupo ${p.grupo}</td>
             <td>${p.equipe_a} <span class="vs">×</span> ${p.equipe_b}</td>
+            <td style="text-align:center; font-weight:bold; font-size:15px;">${p.gols_a} × ${p.gols_b}</td>
             <td style="text-align:center;"><span class="badge-mini">${p.gols} gol${p.gols !== 1 ? 's' : ''}</span></td>
         </tr>
     `).join('');
@@ -305,6 +308,7 @@ function preencherDetalhe(jogadorId, inner) {
                     <th>Competição</th>
                     <th style="text-align:center;">Grupo</th>
                     <th>Partida</th>
+                    <th style="text-align:center;">Escore</th>
                     <th style="text-align:center;">Gols</th>
                 </tr>
             </thead>
