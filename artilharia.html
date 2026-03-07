@@ -111,16 +111,12 @@ async function gerarRelatorio() {
     conteudo.innerHTML = '<div class="status-msg">Calculando artilharia...</div>';
 
     // Busca gols das partidas desta competição
-    // campeonato_gol → partida → id_competicao
     const { data: gols, error } = await supabaseClient
         .from('campeonato_gol')
         .select(`
             gol_marcado,
             campeonato_jogador(id_jogador, nome_jogador),
-            campeonato_partida!inner(id_partida, id_competicao,
-                equipe_a:id_equipe_a(nome_equipe),
-                equipe_b:id_equipe_b(nome_equipe)
-            )
+            campeonato_partida!inner(id_partida, id_competicao)
         `)
         .eq('campeonato_partida.id_competicao', compId);
 
@@ -134,10 +130,33 @@ async function gerarRelatorio() {
         if (!jogador) return;
         const id = jogador.id_jogador;
         if (!mapa[id]) {
-            mapa[id] = { nome: jogador.nome_jogador, total: 0 };
+            mapa[id] = { id, nome: jogador.nome_jogador, total: 0, equipe: '-' };
         }
         mapa[id].total += g.gol_marcado || 0;
     });
+
+    // Para cada jogador, busca o último vínculo (maior data_entrada)
+    const ids = Object.keys(mapa);
+    if (ids.length > 0) {
+        const { data: vinculos } = await supabaseClient
+            .from('campeonato_vinculo')
+            .select('numero_jogador, data_entrada, campeonato_equipe(nome_equipe)')
+            .in('numero_jogador', ids)
+            .order('data_entrada', { ascending: false });
+
+        if (vinculos) {
+            // Pega apenas o primeiro registro por jogador (mais recente)
+            const vistos = new Set();
+            vinculos.forEach(v => {
+                if (!vistos.has(v.numero_jogador)) {
+                    vistos.add(v.numero_jogador);
+                    if (mapa[v.numero_jogador]) {
+                        mapa[v.numero_jogador].equipe = v.campeonato_equipe?.nome_equipe || '-';
+                    }
+                }
+            });
+        }
+    }
 
     // Ordena por total de gols
     const lista = Object.values(mapa).sort((a, b) => b.total - a.total);
@@ -153,6 +172,7 @@ async function gerarRelatorio() {
                 <tr>
                     <th class="pos-col">Pos.</th>
                     <th style="text-align:left;">Jogador</th>
+                    <th style="text-align:left;">Equipe Atual</th>
                     <th>Gols</th>
                 </tr>
             </thead>
@@ -161,6 +181,7 @@ async function gerarRelatorio() {
                     <tr class="${classes[idx] || ''}">
                         <td class="pos-col">${medalhas[idx] || (idx + 1) + 'º'}</td>
                         <td class="jogador-col">${j.nome}</td>
+                        <td class="equipe-col">${j.equipe}</td>
                         <td><span class="badge-gols">${j.total}</span></td>
                     </tr>
                 `).join('')}
