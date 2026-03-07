@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Artilharia</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary:#2c3e50; --accent:#3498db; --gold:#f1c40f; --bg:#f4f7f6; --gray:#7f8c8d; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .btn-voltar { color: var(--accent); font-weight: bold; border: 1px solid var(--accent); padding: 8px 15px; border-radius: 6px; cursor: pointer; background: white; transition: 0.3s; }
+        .btn-voltar:hover { background: var(--accent); color: white; }
+
+        .filtro-area { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
+        select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; width: 100%; max-width: 500px; font-size: 15px; outline: none; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #f8f9fa; color: var(--gray); font-size: 11px; text-transform: uppercase; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: center; }
+        td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
+
+        .pos-col { font-weight: bold; color: var(--gray); width: 50px; }
+        .jogador-col { text-align: left; font-weight: bold; color: var(--primary); }
+        .equipe-col { text-align: left; color: var(--gray); font-size: 13px; }
+        .gols-col { font-weight: bold; font-size: 16px; color: var(--primary); }
+
+        .medalha-1 { background: #fffde7; }
+        .medalha-2 { background: #f5f5f5; }
+        .medalha-3 { background: #fff3e0; }
+
+        .badge-gols { background: var(--gold); color: var(--primary); padding: 3px 10px; border-radius: 12px; font-weight: bold; font-size: 15px; }
+
+        .status-msg { text-align: center; padding: 40px; color: var(--gray); font-style: italic; }
+
+        @media print { .btn-voltar, .filtro-area { display: none; } .container { box-shadow: none; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0;">⚽ Artilharia</h2>
+        <button class="btn-voltar" onclick="voltarMenu()">Voltar ao Menu</button>
+    </div>
+
+    <div class="filtro-area">
+        <select id="select_comp" onchange="gerarRelatorio()">
+            <option value="">Carregando competições...</option>
+        </select>
+    </div>
+
+    <div id="conteudo">
+        <div class="status-msg">Selecione uma competição para ver a artilharia.</div>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessaoAtual = null;
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+
+    inicializar();
+}
+
+async function inicializar() {
+    const { data } = await supabaseClient
+        .from('campeonato_competicao')
+        .select('id_competicao, competicao')
+        .order('competicao');
+
+    const sel = document.getElementById('select_comp');
+    if (data) {
+        sel.innerHTML = '<option value="">-- Selecione a Competição --</option>';
+        data.forEach(c => sel.innerHTML += `<option value="${c.id_competicao}">${c.competicao}</option>`);
+    }
+}
+
+async function gerarRelatorio() {
+    const compId   = document.getElementById('select_comp').value;
+    const conteudo = document.getElementById('conteudo');
+    if (!compId) return;
+
+    conteudo.innerHTML = '<div class="status-msg">Calculando artilharia...</div>';
+
+    // Busca gols das partidas desta competição
+    // campeonato_gol → partida → id_competicao
+    const { data: gols, error } = await supabaseClient
+        .from('campeonato_gol')
+        .select(`
+            gol_marcado,
+            campeonato_jogador(id_jogador, nome_jogador),
+            campeonato_partida!inner(id_partida, id_competicao,
+                equipe_a:id_equipe_a(nome_equipe),
+                equipe_b:id_equipe_b(nome_equipe)
+            )
+        `)
+        .eq('campeonato_partida.id_competicao', compId);
+
+    if (error) { conteudo.innerHTML = `<div class="status-msg">Erro: ${error.message}</div>`; return; }
+    if (!gols || gols.length === 0) { conteudo.innerHTML = '<div class="status-msg">Nenhum gol registrado nesta competição.</div>'; return; }
+
+    // Agrupa gols por jogador
+    const mapa = {};
+    gols.forEach(g => {
+        const jogador = g.campeonato_jogador;
+        if (!jogador) return;
+        const id = jogador.id_jogador;
+        if (!mapa[id]) {
+            mapa[id] = { nome: jogador.nome_jogador, total: 0 };
+        }
+        mapa[id].total += g.gol_marcado || 0;
+    });
+
+    // Ordena por total de gols
+    const lista = Object.values(mapa).sort((a, b) => b.total - a.total);
+
+    if (lista.length === 0) { conteudo.innerHTML = '<div class="status-msg">Nenhum gol registrado nesta competição.</div>'; return; }
+
+    const medalhas = ['🥇', '🥈', '🥉'];
+    const classes  = ['medalha-1', 'medalha-2', 'medalha-3'];
+
+    conteudo.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th class="pos-col">Pos.</th>
+                    <th style="text-align:left;">Jogador</th>
+                    <th>Gols</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${lista.map((j, idx) => `
+                    <tr class="${classes[idx] || ''}">
+                        <td class="pos-col">${medalhas[idx] || (idx + 1) + 'º'}</td>
+                        <td class="jogador-col">${j.nome}</td>
+                        <td><span class="badge-gols">${j.total}</span></td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>
