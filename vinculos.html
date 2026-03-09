@@ -118,18 +118,32 @@ async function inicializar() {
 
 async function carregarVinculos() {
     const status = document.getElementById('status-msg');
-    const { data, error } = await supabaseClient
+
+    // Busca vínculos com joins explícitos pelas FKs
+    const { data: vinculos, error } = await supabaseClient
         .from('campeonato_vinculo')
-        .select(`
-            *,
-            campeonato_jogador!inner(nome_jogador),
-            campeonato_equipe!inner(nome_equipe)
-        `)
+        .select('id_vinculo, numero_jogador, numero_equipe, data_entrada')
         .order('id_vinculo', { ascending: false });
 
     if (error) { status.innerText = "Erro ao carregar vínculos: " + error.message; return; }
+    if (!vinculos || vinculos.length === 0) { status.innerText = "Nenhum vínculo encontrado."; listaCache = []; exibirLista([]); return; }
 
-    listaCache = data;
+    // Busca nomes de jogadores e equipes separadamente para evitar problema de alias
+    const { data: jogadores } = await supabaseClient.from('campeonato_jogador').select('id_jogador, nome_jogador');
+    const { data: equipes }   = await supabaseClient.from('campeonato_equipe').select('id_equipe, nome_equipe');
+
+    const mapaJog  = {};
+    const mapaEqui = {};
+    if (jogadores) jogadores.forEach(j => mapaJog[j.id_jogador]   = j.nome_jogador);
+    if (equipes)   equipes.forEach(e =>   mapaEqui[e.id_equipe]   = e.nome_equipe);
+
+    // Monta lista enriquecida
+    listaCache = vinculos.map(v => ({
+        ...v,
+        nome_jogador: mapaJog[v.numero_jogador]  || `ID ${v.numero_jogador}`,
+        nome_equipe:  mapaEqui[v.numero_equipe]  || `ID ${v.numero_equipe}`
+    }));
+
     exibirLista(listaCache);
 }
 
@@ -146,8 +160,8 @@ function exibirLista(dados) {
         div.innerHTML = `
             <div class="info">
                 <span class="id-label">Vínculo #${v.id_vinculo} | Jogador ID: ${v.numero_jogador}</span><br>
-                <strong>👤 ${v.campeonato_jogador.nome_jogador}</strong><br>
-                <span>Equipe: <span class="equipe-nome">${v.campeonato_equipe.nome_equipe}</span></span>
+                <strong>👤 ${v.nome_jogador}</strong><br>
+                <span>Equipe: <span class="equipe-nome">${v.nome_equipe}</span></span>
             </div>
             <button class="btn-del" onclick="excluirVinculo(${v.id_vinculo})">Remover</button>
         `;
@@ -158,8 +172,8 @@ function exibirLista(dados) {
 function filtrarLista() {
     const termo = document.getElementById('input_busca').value.toLowerCase();
     const filtrados = listaCache.filter(v =>
-        v.campeonato_jogador.nome_jogador.toLowerCase().includes(termo) ||
-        v.campeonato_equipe.nome_equipe.toLowerCase().includes(termo)
+        v.nome_jogador.toLowerCase().includes(termo) ||
+        v.nome_equipe.toLowerCase().includes(termo)
     );
     exibirLista(filtrados);
 }
