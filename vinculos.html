@@ -183,13 +183,27 @@ async function salvarVinculo() {
     const equi = document.getElementById('select_equipe').value;
     if (!jog || !equi) return alert("Selecione jogador e equipe!");
 
-    const { error } = await supabaseClient
+    // Verifica se já existe antes de tentar inserir
+    const { data: existente, error: errCheck } = await supabaseClient
         .from('campeonato_vinculo')
-        .insert([{ numero_jogador: jog, numero_equipe: equi }]);
+        .select('id_vinculo')
+        .eq('numero_jogador', jog)
+        .eq('numero_equipe', equi);
+
+    if (errCheck) { alert("Erro ao verificar vínculo: " + errCheck.message); return; }
+
+    if (existente && existente.length > 0) {
+        alert(`Este jogador já está vinculado a esta equipe! (Vínculo #${existente[0].id_vinculo})`);
+        return;
+    }
+
+    const { data: inserted, error } = await supabaseClient
+        .from('campeonato_vinculo')
+        .insert([{ numero_jogador: parseInt(jog), numero_equipe: parseInt(equi) }])
+        .select();
 
     if (error) {
-        if (error.code === "23505") alert("Este jogador já está vinculado a uma equipe!");
-        else alert("Erro ao vincular: " + error.message);
+        alert("Erro ao vincular:\nCódigo: " + error.code + "\nMensagem: " + error.message + "\nDetalhes: " + (error.details || '-'));
     } else {
         limparFormulario();
         carregarVinculos();
