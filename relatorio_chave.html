@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório por Chave</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary:#2c3e50; --accent:#3498db; --bg:#f4f7f6; --gray:#7f8c8d; }
+
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+        /* Topo de controles */
+        .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #eee; }
+        .controls h2 { margin: 0; flex: 1; }
+        select { padding: 10px 14px; border-radius: 8px; border: 1px solid #ddd; font-size: 14px; outline: none; min-width: 200px; }
+        .btn { padding: 10px 18px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .btn-voltar  { background: white; color: var(--accent); border: 1px solid var(--accent); }
+        .btn-voltar:hover { background: var(--accent); color: white; }
+        .btn-print   { background: var(--primary); color: white; }
+        .btn-print:hover { background: #1a252f; }
+
+        .status-msg { text-align: center; padding: 50px; color: var(--gray); font-style: italic; }
+
+        /* ===== ÁREA DE IMPRESSÃO ===== */
+        #relatorio { margin-top: 10px; }
+
+        /* Cabeçalho do relatório */
+        .rel-header { text-align: center; margin-bottom: 24px; }
+        .rel-header h1 { font-size: 20px; margin: 0 0 4px; color: var(--primary); }
+        .rel-header p  { margin: 0; color: var(--gray); font-size: 13px; }
+
+        /* Seção de grupo */
+        .grupo-bloco { margin-bottom: 30px; page-break-inside: avoid; }
+
+        .grupo-titulo {
+            background: var(--primary); color: white;
+            padding: 8px 14px; border-radius: 6px 6px 0 0;
+            font-size: 14px; font-weight: bold; letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Sub-seção */
+        .sub-titulo {
+            font-size: 11px; font-weight: bold; text-transform: uppercase;
+            color: var(--accent); letter-spacing: 1px;
+            margin: 14px 0 6px; padding-left: 2px;
+        }
+
+        /* Tabela de partidas */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+        th { background: #eef4fb; color: var(--primary); padding: 8px 10px; font-size: 11px; text-transform: uppercase; border-bottom: 2px solid #c9dff5; text-align: left; }
+        td { padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+
+        .td-id     { color: var(--gray); font-size: 11px; width: 50px; }
+        .td-grupo  { font-weight: bold; width: 70px; }
+        .td-status-P { color: #e67e22; font-size: 11px; font-weight: bold; }
+        .td-status-F { color: #27ae60; font-size: 11px; font-weight: bold; }
+        .td-x      { color: var(--gray); margin: 0 4px; }
+
+        /* Grid de equipes */
+        .equipes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 4px; }
+        .equipe-box { border: 1px solid #dde; border-radius: 6px; overflow: hidden; page-break-inside: avoid; }
+        .equipe-box-header { background: #3d5a80; color: white; padding: 7px 12px; font-size: 13px; font-weight: bold; }
+        .equipe-box-body { padding: 6px 12px; }
+        .jogador-linha { padding: 5px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .jogador-linha:last-child { border-bottom: none; }
+        .jogador-num { color: var(--gray); font-size: 11px; min-width: 20px; }
+        .sem-jogador { color: var(--gray); font-style: italic; font-size: 12px; padding: 6px 0; }
+
+        /* Linha separadora entre grupos */
+        .separador { border: none; border-top: 1px dashed #ccc; margin: 28px 0; }
+
+        /* ===== PRINT ===== */
+        @media print {
+            body { background: white; padding: 0; font-size: 10px; }
+            .container { box-shadow: none; border-radius: 0; padding: 0; max-width: 100%; }
+            .controls { display: none; }
+            #relatorio { margin-top: 0; }
+            .rel-header { margin-bottom: 8px; }
+            .rel-header h1 { font-size: 14px; }
+            .rel-header p  { font-size: 10px; }
+            .grupo-bloco { page-break-inside: avoid; margin-bottom: 10px; }
+            .grupo-titulo { padding: 5px 10px; font-size: 11px; border-radius: 4px 4px 0 0; }
+            .sub-titulo { font-size: 9px; margin: 7px 0 3px; }
+            table { font-size: 9px; margin-bottom: 4px; }
+            th { padding: 4px 6px; font-size: 9px; }
+            td { padding: 3px 6px; }
+            .equipes-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; }
+            .equipe-box { border-radius: 4px; }
+            .equipe-box-header { padding: 4px 8px; font-size: 10px; }
+            .equipe-box-body { padding: 3px 8px; }
+            .jogador-linha { padding: 2px 0; font-size: 9px; gap: 4px; }
+            .jogador-num { font-size: 8px; }
+            .sem-jogador { font-size: 9px; padding: 3px 0; }
+            .separador { margin: 10px 0; }
+        }
+
+        @page { size: A4; margin: 10mm; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="controls">
+        <h2>📋 Relatório por Chave</h2>
+        <select id="sel_comp" onchange="onCompChange()">
+            <option value="">Selecione a competição...</option>
+        </select>
+        <select id="sel_grupo" onchange="gerarRelatorio()" disabled>
+            <option value="">Selecione o grupo...</option>
+        </select>
+        <button class="btn btn-print" onclick="window.print()">🖨️ Imprimir</button>
+        <button class="btn btn-voltar" onclick="voltarMenu()">Voltar</button>
+    </div>
+
+    <div id="relatorio">
+        <div class="status-msg">Selecione a competição e o grupo para gerar o relatório.</div>
+    </div>
+
+</div>
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessaoAtual  = null;
+let compNomeAtual = '';
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const at = params.get('access_token');
+    const rt = params.get('refresh_token');
+
+    if (at && rt) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: at, refresh_token: rt });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+    inicializar();
+}
+
+async function inicializar() {
+    const { data } = await supabaseClient
+        .from('campeonato_competicao')
+        .select('id_competicao, competicao')
+        .order('competicao');
+
+    const sel = document.getElementById('sel_comp');
+    if (data) {
+        data.forEach(c => sel.innerHTML += `<option value="${c.id_competicao}">${c.competicao}</option>`);
+    }
+}
+
+async function onCompChange() {
+    const compId  = document.getElementById('sel_comp').value;
+    const selGrup = document.getElementById('sel_grupo');
+    selGrup.innerHTML = '<option value="">Todos os grupos</option>';
+    selGrup.disabled  = true;
+    document.getElementById('relatorio').innerHTML = '<div class="status-msg">Selecione a competição e o grupo para gerar o relatório.</div>';
+
+    if (!compId) return;
+
+    // Descobre nome da competição selecionada
+    const selComp = document.getElementById('sel_comp');
+    compNomeAtual = selComp.options[selComp.selectedIndex].text;
+
+    // Busca grupos distintos das inscrições desta competição
+    const { data: inscritos } = await supabaseClient
+        .from('campeonato_inscricao')
+        .select('grupo')
+        .eq('id_competicao', compId);
+
+    if (inscritos) {
+        const grupos = [...new Set(inscritos.map(i => i.grupo).filter(Boolean))].sort();
+        grupos.forEach(g => selGrup.innerHTML += `<option value="${g}">Grupo ${g}</option>`);
+        selGrup.disabled = false;
+    }
+
+    gerarRelatorio();
+}
+
+async function gerarRelatorio() {
+    const compId = document.getElementById('sel_comp').value;
+    const grupo  = document.getElementById('sel_grupo').value;
+    const rel    = document.getElementById('relatorio');
+    if (!compId) return;
+
+    rel.innerHTML = '<div class="status-msg">Carregando dados...</div>';
+
+    // === PARTIDAS ===
+    let queryPartidas = supabaseClient
+        .from('campeonato_partida')
+        .select(`
+            id_partida, grupo, status, gols_a, gols_b,
+            equipe_a:campeonato_equipe!campeonato_partida_id_equipe_a_fkey(id_equipe, nome_equipe),
+            equipe_b:campeonato_equipe!campeonato_partida_id_equipe_b_fkey(id_equipe, nome_equipe)
+        `)
+        .eq('id_competicao', compId)
+        .order('grupo')
+        .order('id_partida');
+
+    if (grupo) queryPartidas = queryPartidas.eq('grupo', grupo);
+    const { data: partidas } = await queryPartidas;
+
+    // === INSCRIÇÕES + EQUIPES ===
+    let queryInscritos = supabaseClient
+        .from('campeonato_inscricao')
+        .select('grupo, campeonato_equipe(id_equipe, nome_equipe)')
+        .eq('id_competicao', compId)
+        .order('grupo');
+
+    if (grupo) queryInscritos = queryInscritos.eq('grupo', grupo);
+    const { data: inscritos } = await queryInscritos;
+
+    // === VÍNCULOS - jogadores de cada equipe ===
+    const idsEquipes = inscritos ? [...new Set(inscritos.map(i => i.campeonato_equipe?.id_equipe).filter(Boolean))] : [];
+    let mapaJogadores = {}; // equipeId → [{ id, nome }]
+
+    if (idsEquipes.length > 0) {
+        const { data: vinculos } = await supabaseClient
+            .from('campeonato_vinculo')
+            .select('numero_equipe, numero_jogador, data_entrada, campeonato_jogador(id_jogador, nome_jogador)')
+            .in('numero_equipe', idsEquipes)
+            .order('data_entrada', { ascending: false });
+
+        if (vinculos) {
+            // Pega o vínculo mais recente por jogador (evita duplicata)
+            const vistos = new Set();
+            vinculos.forEach(v => {
+                if (!v.campeonato_jogador) return;
+                const key = `${v.numero_jogador}-${v.numero_equipe}`;
+                if (vistos.has(key)) return;
+                vistos.add(key);
+                if (!mapaJogadores[v.numero_equipe]) mapaJogadores[v.numero_equipe] = [];
+                mapaJogadores[v.numero_equipe].push({
+                    id:   v.campeonato_jogador.id_jogador,
+                    nome: v.campeonato_jogador.nome_jogador
+                });
+            });
+        }
+    }
+
+    // Agrupa por grupo
+    const grupos = {};
+    if (partidas) {
+        partidas.forEach(p => {
+            const g = p.grupo || '-';
+            if (!grupos[g]) grupos[g] = { partidas: [], equipes: {} };
+            grupos[g].partidas.push(p);
+        });
+    }
+    if (inscritos) {
+        inscritos.forEach(i => {
+            const g  = i.grupo || '-';
+            const eq = i.campeonato_equipe;
+            if (!eq) return;
+            if (!grupos[g]) grupos[g] = { partidas: [], equipes: {} };
+            grupos[g].equipes[eq.id_equipe] = { nome: eq.nome_equipe, jogadores: mapaJogadores[eq.id_equipe] || [] };
+        });
+    }
+
+    const gruposOrdenados = Object.keys(grupos).sort();
+    if (gruposOrdenados.length === 0) {
+        rel.innerHTML = '<div class="status-msg">Nenhum dado encontrado.</div>';
+        return;
+    }
+
+    // === RENDER ===
+    let html = `
+        <div class="rel-header">
+            <h1>📋 ${compNomeAtual}</h1>
+            <p>${grupo ? 'Grupo ' + grupo : 'Todos os Grupos'} — Gerado em ${new Date().toLocaleDateString('pt-br', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</p>
+        </div>
+    `;
+
+    gruposOrdenados.forEach((g, idx) => {
+        const bloco = grupos[g];
+
+        // --- Partidas ---
+        const linhasPartidas = bloco.partidas.map(p => {
+            const statusClass = p.status === 'Finalizado' ? 'td-status-F' : 'td-status-P';
+            const escore = p.status === 'Finalizado'
+                ? `<strong>${p.gols_a} × ${p.gols_b}</strong>`
+                : `<span style="color:#ccc;">— × —</span>`;
+            return `
+                <tr>
+                    <td class="td-id">#${p.id_partida}</td>
+                    <td class="td-grupo">Grupo ${p.grupo}</td>
+                    <td>${p.equipe_a?.nome_equipe || '?'} <span class="td-x">×</span> ${p.equipe_b?.nome_equipe || '?'}</td>
+                    <td style="text-align:center;">${escore}</td>
+                    <td class="${statusClass}">${p.status}</td>
+                </tr>
+            `;
+        }).join('');
+
+        // --- Equipes e jogadores ---
+        const equipesList = Object.values(bloco.equipes).sort((a, b) => a.nome.localeCompare(b.nome));
+        const cardsEquipes = equipesList.map(eq => {
+            const listaJog = eq.jogadores.length > 0
+                ? eq.jogadores
+                    .sort((a, b) => a.nome.localeCompare(b.nome))
+                    .map((j, i) => `
+                        <div class="jogador-linha">
+                            <span class="jogador-num">${j.id}</span>
+                            <span>${j.nome}</span>
+                        </div>
+                    `).join('')
+                : '<div class="sem-jogador">Nenhum jogador vinculado</div>';
+
+            return `
+                <div class="equipe-box">
+                    <div class="equipe-box-header">🛡️ ${eq.nome}</div>
+                    <div class="equipe-box-body">${listaJog}</div>
+                </div>
+            `;
+        }).join('');
+
+        if (idx > 0) html += '<hr class="separador">';
+
+        html += `
+            <div class="grupo-bloco">
+                <div class="grupo-titulo">Grupo ${g}</div>
+
+                <div class="sub-titulo">Partidas</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Grupo</th>
+                            <th>Confronto</th>
+                            <th style="text-align:center;">Escore</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhasPartidas || '<tr><td colspan="5" style="color:var(--gray);text-align:center;font-style:italic;">Nenhuma partida cadastrada</td></tr>'}
+                    </tbody>
+                </table>
+
+                <div class="sub-titulo">Equipes e Jogadores</div>
+                <div class="equipes-grid">
+                    ${cardsEquipes || '<p style="color:var(--gray);font-style:italic;font-size:13px;">Nenhuma equipe inscrita</p>'}
+                </div>
+            </div>
+        `;
+    });
+
+    rel.innerHTML = html;
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>
