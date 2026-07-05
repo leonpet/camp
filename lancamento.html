@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lançamento de Partida</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary:#2c3e50; --accent:#3498db; --success:#27ae60; --danger:#e74c3c; --gold:#f1c40f; --gray:#7f8c8d; --bg:#f0f2f5; }
+        * { box-sizing: border-box; }
+        body { font-family: Verdana, Geneva, sans-serif; background: var(--bg); margin: 0; padding: 20px; font-size: 10pt; }
+        .container { max-width: 700px; margin: auto; }
+
+        .card { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 16px; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .header h2 { margin: 0; font-size: 14pt; }
+        .btn-voltar { background: white; color: var(--accent); border: 1px solid var(--accent); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: Verdana, Geneva, sans-serif; transition: 0.2s; }
+        .btn-voltar:hover { background: var(--accent); color: white; }
+
+        /* Busca de partida */
+        .busca-row { display: flex; gap: 10px; align-items: center; }
+        .busca-row input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 11pt; font-family: Verdana, Geneva, sans-serif; outline: none; }
+        .busca-row input:focus { border-color: var(--accent); }
+        .btn-buscar { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: Verdana, Geneva, sans-serif; transition: 0.2s; white-space: nowrap; }
+        .btn-buscar:hover { background: #1a252f; }
+
+        /* Info da partida */
+        .partida-info { background: #f8f9fa; border-left: 4px solid var(--accent); border-radius: 6px; padding: 14px 16px; }
+        .placar-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 10px; }
+        .equipe-nome { font-weight: bold; font-size: 12pt; flex: 1; }
+        .equipe-nome.direita { text-align: right; }
+        .placar-sep { font-size: 18pt; font-weight: bold; color: var(--gray); }
+        .info-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .badge { background: #e9ecef; padding: 3px 10px; border-radius: 10px; font-size: 8pt; color: var(--primary); }
+
+        /* Seção de gols */
+        .secao-titulo { font-size: 9pt; font-weight: bold; text-transform: uppercase; color: var(--accent); letter-spacing: 1px; margin: 16px 0 10px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+
+        .gols-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .gols-row label { font-size: 9pt; color: var(--gray); white-space: nowrap; width: 80px; }
+        .gols-row input[type="number"] { width: 70px; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 11pt; font-family: Verdana, Geneva, sans-serif; text-align: center; outline: none; }
+        .gols-row input[type="number"]:focus { border-color: var(--accent); }
+
+        /* Campos de jogador */
+        .jogador-bloco { background: #f8f9fa; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid #e0e0e0; }
+        .jogador-bloco .equipe-tag { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: var(--gray); margin-bottom: 8px; }
+        .jogador-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+        .jogador-row:last-child { margin-bottom: 0; }
+        .jogador-row .gol-num { font-size: 8pt; color: var(--gray); width: 50px; text-align: right; flex-shrink: 0; }
+        .jogador-row input.cod-jogador { width: 80px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 10pt; font-family: Verdana, Geneva, sans-serif; text-align: center; outline: none; }
+        .jogador-row input.cod-jogador:focus { border-color: var(--accent); }
+        .jogador-row .nome-jogador { flex: 1; padding: 8px 10px; background: white; border: 1px solid #ddd; border-radius: 6px; font-size: 9pt; color: var(--primary); min-height: 36px; display: flex; align-items: center; }
+        .nome-jogador.encontrado { border-color: var(--success); color: var(--success); font-weight: bold; }
+        .nome-jogador.nao-encontrado { border-color: var(--danger); color: var(--danger); }
+
+        /* Resumo de jogadores duplicados */
+        .resumo-bloco { background: #fffde7; border: 1px solid #ffe082; border-radius: 6px; padding: 10px 14px; margin-top: 6px; font-size: 9pt; display: none; }
+        .resumo-bloco.visivel { display: block; }
+        .resumo-linha { padding: 2px 0; }
+
+        /* Status */
+        .status-row { display: flex; gap: 12px; align-items: center; }
+        .status-row label { font-weight: bold; font-size: 10pt; }
+        .status-row select { padding: 10px 14px; border: 2px solid #ddd; border-radius: 6px; font-size: 10pt; font-family: Verdana, Geneva, sans-serif; outline: none; }
+        .status-row select:focus { border-color: var(--accent); }
+
+        /* Botão salvar */
+        .btn-salvar { background: var(--success); color: white; border: none; padding: 14px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12pt; font-family: Verdana, Geneva, sans-serif; width: 100%; transition: 0.2s; margin-top: 6px; }
+        .btn-salvar:hover { background: #1e8449; }
+        .btn-salvar:disabled { background: var(--gray); cursor: default; }
+
+        .msg { text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; margin-top: 10px; display: none; }
+        .msg.ok    { background: #d4edda; color: #155724; display: block; }
+        .msg.erro  { background: #f8d7da; color: #721c24; display: block; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="card">
+        <div class="header">
+            <h2>⚽ Lançamento de Partida</h2>
+            <button class="btn-voltar" onclick="voltarMenu()">Voltar</button>
+        </div>
+    </div>
+
+    <!-- BUSCA DE PARTIDA -->
+    <div class="card">
+        <div class="secao-titulo">🔍 Buscar Partida</div>
+        <div class="busca-row">
+            <input type="number" id="input_partida_id" placeholder="Digite o código da partida..." min="1"
+                onkeydown="if(event.key==='Enter') buscarPartida()">
+            <button class="btn-buscar" onclick="buscarPartida()">Buscar</button>
+        </div>
+    </div>
+
+    <!-- DADOS DA PARTIDA (oculto até busca) -->
+    <div id="secao-partida" class="hidden">
+
+        <!-- INFO DA PARTIDA -->
+        <div class="card">
+            <div class="partida-info">
+                <div class="placar-row">
+                    <span class="equipe-nome" id="nome_equipe_a">—</span>
+                    <span class="placar-sep">×</span>
+                    <span class="equipe-nome direita" id="nome_equipe_b">—</span>
+                </div>
+                <div class="info-badges">
+                    <span class="badge" id="badge_comp">—</span>
+                    <span class="badge" id="badge_grupo">—</span>
+                    <span class="badge" id="badge_partida">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- GOLS DA PARTIDA -->
+        <div class="card">
+            <div class="secao-titulo">🥅 Resultado</div>
+
+            <div class="gols-row">
+                <label id="label_gols_a">Time A</label>
+                <input type="number" id="gols_a" min="0" value="0" oninput="atualizarCamposJogadores()">
+                <span style="color:var(--gray); font-size:14pt; font-weight:bold;">×</span>
+                <input type="number" id="gols_b" min="0" value="0" oninput="atualizarCamposJogadores()">
+                <label id="label_gols_b" style="width:80px; text-align:right;">Time B</label>
+            </div>
+        </div>
+
+        <!-- JOGADORES QUE MARCARAM -->
+        <div class="card" id="card-jogadores">
+            <div class="secao-titulo">👤 Jogadores que Marcaram</div>
+            <div id="campos-jogadores-a"></div>
+            <div id="campos-jogadores-b"></div>
+            <div class="resumo-bloco" id="resumo-gols"></div>
+        </div>
+
+        <!-- STATUS E SALVAR -->
+        <div class="card">
+            <div class="secao-titulo">📋 Status da Partida</div>
+            <div class="status-row">
+                <label>Status:</label>
+                <select id="select_status">
+                    <option value="Pendente">Pendente</option>
+                    <option value="Finalizado">Finalizado</option>
+                </select>
+            </div>
+            <br>
+            <button class="btn-salvar" onclick="salvarLancamento()">💾 Salvar Lançamento</button>
+            <div class="msg" id="msg-resultado"></div>
+        </div>
+
+    </div><!-- /secao-partida -->
+
+</div>
+
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessaoAtual  = null;
+let partidaAtual = null;   // dados da partida carregada
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const at = params.get('access_token');
+    const rt = params.get('refresh_token');
+
+    if (at && rt) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: at, refresh_token: rt });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+}
+
+// ─── BUSCAR PARTIDA ───────────────────────────────────────────────
+async function buscarPartida() {
+    const id = document.getElementById('input_partida_id').value.trim();
+    if (!id) return;
+
+    const { data, error } = await supabaseClient
+        .from('campeonato_partida')
+        .select(`
+            id_partida, grupo, status, gols_a, gols_b, id_competicao,
+            equipe_a:campeonato_equipe!campeonato_partida_id_equipe_a_fkey(id_equipe, nome_equipe),
+            equipe_b:campeonato_equipe!campeonato_partida_id_equipe_b_fkey(id_equipe, nome_equipe),
+            campeonato_competicao(competicao)
+        `)
+        .eq('id_partida', id)
+        .single();
+
+    if (error || !data) {
+        alert('Partida não encontrada!');
+        document.getElementById('secao-partida').classList.add('hidden');
+        return;
+    }
+
+    partidaAtual = data;
+
+    // Preenche info visual
+    document.getElementById('nome_equipe_a').textContent  = data.equipe_a?.nome_equipe || '?';
+    document.getElementById('nome_equipe_b').textContent  = data.equipe_b?.nome_equipe || '?';
+    document.getElementById('label_gols_a').textContent   = data.equipe_a?.nome_equipe || 'Time A';
+    document.getElementById('label_gols_b').textContent   = data.equipe_b?.nome_equipe || 'Time B';
+    document.getElementById('badge_comp').textContent     = data.campeonato_competicao?.competicao || '—';
+    document.getElementById('badge_grupo').textContent    = 'Grupo ' + (data.grupo || '—');
+    document.getElementById('badge_partida').textContent  = 'Partida #' + data.id_partida;
+    document.getElementById('select_status').value        = data.status || 'Pendente';
+
+    // Preenche gols já existentes
+    document.getElementById('gols_a').value = data.gols_a ?? 0;
+    document.getElementById('gols_b').value = data.gols_b ?? 0;
+
+    document.getElementById('secao-partida').classList.remove('hidden');
+    document.getElementById('msg-resultado').className = 'msg';
+
+    atualizarCamposJogadores();
+}
+
+// ─── GERAR CAMPOS DE JOGADORES ────────────────────────────────────
+function atualizarCamposJogadores() {
+    if (!partidaAtual) return;
+
+    const golsA = parseInt(document.getElementById('gols_a').value) || 0;
+    const golsB = parseInt(document.getElementById('gols_b').value) || 0;
+
+    renderCamposEquipe('campos-jogadores-a', golsA, partidaAtual.equipe_a?.nome_equipe || 'Time A', 'a');
+    renderCamposEquipe('campos-jogadores-b', golsB, partidaAtual.equipe_b?.nome_equipe || 'Time B', 'b');
+
+    atualizarResumo();
+}
+
+function renderCamposEquipe(containerId, qtd, nomeEquipe, lado) {
+    const container = document.getElementById(containerId);
+
+    if (qtd === 0) { container.innerHTML = ''; return; }
+
+    let html = `<div class="jogador-bloco">
+        <div class="equipe-tag">⚽ ${nomeEquipe} — ${qtd} gol${qtd !== 1 ? 's' : ''}</div>`;
+
+    for (let i = 1; i <= qtd; i++) {
+        html += `
+        <div class="jogador-row">
+            <span class="gol-num">Gol ${i}:</span>
+            <input type="number" class="cod-jogador" id="jog_${lado}_${i}"
+                placeholder="ID" min="1"
+                oninput="buscarJogador('${lado}', ${i})"
+                onkeydown="if(event.key==='Enter'||event.key==='Tab'){buscarJogador('${lado}',${i}); atualizarResumo();}">
+            <div class="nome-jogador" id="nome_jog_${lado}_${i}">—</div>
+        </div>`;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+// ─── BUSCAR JOGADOR POR ID ────────────────────────────────────────
+async function buscarJogador(lado, num) {
+    const input  = document.getElementById(`jog_${lado}_${num}`);
+    const nomeEl = document.getElementById(`nome_jog_${lado}_${num}`);
+    const id     = input.value.trim();
+
+    if (!id) { nomeEl.textContent = '—'; nomeEl.className = 'nome-jogador'; atualizarResumo(); return; }
+
+    // 1. Busca o jogador
+    const { data: jogador, error: errJog } = await supabaseClient
+        .from('campeonato_jogador')
+        .select('id_jogador, nome_jogador')
+        .eq('id_jogador', id)
+        .single();
+
+    if (errJog || !jogador) {
+        nomeEl.textContent = 'Jogador não encontrado';
+        nomeEl.className   = 'nome-jogador nao-encontrado';
+        atualizarResumo();
+        return;
+    }
+
+    // 2. Busca o último vínculo do jogador (maior data_entrada)
+    const { data: vinculos } = await supabaseClient
+        .from('campeonato_vinculo')
+        .select('numero_equipe, data_entrada')
+        .eq('numero_jogador', id)
+        .order('data_entrada', { ascending: false })
+        .limit(1);
+
+    const equipeEsperada = lado === 'a'
+        ? partidaAtual?.equipe_a?.id_equipe
+        : partidaAtual?.equipe_b?.id_equipe;
+
+    const nomeEquipeEsperada = lado === 'a'
+        ? partidaAtual?.equipe_a?.nome_equipe
+        : partidaAtual?.equipe_b?.nome_equipe;
+
+    if (!vinculos || vinculos.length === 0) {
+        // Jogador existe mas sem vínculo
+        nomeEl.textContent = `${jogador.nome_jogador} ⚠️ sem equipe vinculada`;
+        nomeEl.className   = 'nome-jogador nao-encontrado';
+        atualizarResumo();
+        return;
+    }
+
+    const equipeVinculo = vinculos[0].numero_equipe;
+
+    if (parseInt(equipeVinculo) !== parseInt(equipeEsperada)) {
+        // Jogador pertence a outra equipe
+        nomeEl.textContent = `${jogador.nome_jogador} ⚠️ não pertence a ${nomeEquipeEsperada}`;
+        nomeEl.className   = 'nome-jogador nao-encontrado';
+    } else {
+        // Tudo certo
+        nomeEl.textContent = jogador.nome_jogador;
+        nomeEl.className   = 'nome-jogador encontrado';
+    }
+
+    atualizarResumo();
+}
+
+// ─── RESUMO: agrupa gols por jogador ──────────────────────────────
+function atualizarResumo() {
+    const resumo = {};
+
+    ['a', 'b'].forEach(lado => {
+        const qtd = parseInt(document.getElementById(`gols_${lado}`)?.value) || 0;
+        for (let i = 1; i <= qtd; i++) {
+            const input  = document.getElementById(`jog_${lado}_${i}`);
+            const nomeEl = document.getElementById(`nome_jog_${lado}_${i}`);
+            if (!input) continue;
+            const id = input.value.trim();
+            if (!id || !nomeEl || !nomeEl.classList.contains('encontrado')) continue;
+            if (!resumo[id]) resumo[id] = { nome: nomeEl.textContent, gols: 0 };
+            resumo[id].gols++;
+        }
+    });
+
+    const div = document.getElementById('resumo-gols');
+    const entradas = Object.entries(resumo);
+
+    if (entradas.length === 0 || entradas.every(([, v]) => v.gols <= 1)) {
+        div.className = 'resumo-bloco';
+        return;
+    }
+
+    // Mostra resumo só quando há jogador com mais de 1 gol
+    const duplicados = entradas.filter(([, v]) => v.gols > 1);
+    if (duplicados.length === 0) { div.className = 'resumo-bloco'; return; }
+
+    div.className = 'resumo-bloco visivel';
+    div.innerHTML = '<strong>⚠️ Jogadores com mais de um gol — será salva a soma:</strong><br>' +
+        duplicados.map(([id, v]) => `<div class="resumo-linha">ID ${id} — ${v.nome}: <strong>${v.gols} gols</strong></div>`).join('');
+}
+
+// ─── SALVAR ───────────────────────────────────────────────────────
+async function salvarLancamento() {
+    if (!partidaAtual) return;
+
+    const golsA   = parseInt(document.getElementById('gols_a').value) || 0;
+    const golsB   = parseInt(document.getElementById('gols_b').value) || 0;
+    const status  = document.getElementById('select_status').value;
+    const msgEl   = document.getElementById('msg-resultado');
+    const btn     = document.querySelector('.btn-salvar');
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    msgEl.className = 'msg';
+
+    // 1. Atualizar partida
+    const { error: errPartida } = await supabaseClient
+        .from('campeonato_partida')
+        .update({ gols_a: golsA, gols_b: golsB, status })
+        .eq('id_partida', partidaAtual.id_partida);
+
+    if (errPartida) {
+        msgEl.textContent = 'Erro ao salvar partida: ' + errPartida.message;
+        msgEl.className = 'msg erro';
+        btn.disabled = false; btn.textContent = '💾 Salvar Lançamento';
+        return;
+    }
+
+    // 2. Montar mapa de gols por jogador (soma)
+    const mapaGols = {}; // jogadorId → total de gols
+
+    for (const lado of ['a', 'b']) {
+        const qtd = lado === 'a' ? golsA : golsB;
+        for (let i = 1; i <= qtd; i++) {
+            const input  = document.getElementById(`jog_${lado}_${i}`);
+            const nomeEl = document.getElementById(`nome_jog_${lado}_${i}`);
+            if (!input) continue;
+            const id = input.value.trim();
+            if (!id || !nomeEl?.classList.contains('encontrado')) continue;
+            mapaGols[id] = (mapaGols[id] || 0) + 1;
+        }
+    }
+
+    // 3. Para cada jogador, apaga gols antigos desta partida e insere novo registro com soma
+    const partidaId = partidaAtual.id_partida;
+
+    // Deletar registros antigos desta partida
+    const { error: errDel } = await supabaseClient
+        .from('campeonato_gol')
+        .delete()
+        .eq('partida', partidaId);
+
+    if (errDel) {
+        msgEl.textContent = 'Erro ao limpar gols anteriores: ' + errDel.message;
+        msgEl.className = 'msg erro';
+        btn.disabled = false; btn.textContent = '💾 Salvar Lançamento';
+        return;
+    }
+
+    // Inserir novos registros (um por jogador com soma)
+    const inserts = Object.entries(mapaGols).map(([jogadorId, total]) => ({
+        jogador:      parseInt(jogadorId),
+        partida:      partidaId,
+        gol_marcado:  total
+    }));
+
+    if (inserts.length > 0) {
+        const { error: errIns } = await supabaseClient
+            .from('campeonato_gol')
+            .insert(inserts);
+
+        if (errIns) {
+            msgEl.textContent = 'Erro ao salvar gols: ' + errIns.message;
+            msgEl.className = 'msg erro';
+            btn.disabled = false; btn.textContent = '💾 Salvar Lançamento';
+            return;
+        }
+    }
+
+    msgEl.textContent = `✅ Partida #${partidaId} salva com sucesso!`;
+    msgEl.className = 'msg ok';
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Lançamento';
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>

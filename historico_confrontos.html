@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Confrontos</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary:#2c3e50; --accent:#3498db; --success:#27ae60; --danger:#e74c3c; --gold:#f1c40f; --gray:#7f8c8d; --bg:#f0f2f5; }
+        * { box-sizing: border-box; }
+        body { font-family: Verdana, Geneva, sans-serif; background: var(--bg); margin: 0; padding: 20px; font-size: 10pt; color: #000; }
+        .container { max-width: 860px; margin: auto; }
+
+        .card { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 16px; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 13pt; }
+        .btn-voltar { background: white; color: var(--accent); border: 1px solid var(--accent); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: Verdana, Geneva, sans-serif; transition: 0.2s; }
+        .btn-voltar:hover { background: var(--accent); color: white; }
+
+        .secao-titulo { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: var(--accent); letter-spacing: 1px; margin: 0 0 12px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+
+        /* Busca */
+        .busca-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+        .busca-grid label { font-size: 8pt; color: var(--gray); font-weight: bold; display: block; margin-bottom: 4px; }
+        .busca-grid input { width: 100%; padding: 11px; border: 2px solid #ddd; border-radius: 7px; font-size: 10pt; font-family: Verdana, Geneva, sans-serif; outline: none; }
+        .busca-grid input:focus { border-color: var(--accent); }
+        .nome-preview { font-size: 8pt; margin-top: 4px; min-height: 16px; font-weight: bold; }
+        .nome-preview.ok  { color: var(--success); }
+        .nome-preview.err { color: var(--danger); }
+        .btn-buscar { background: var(--primary); color: white; border: none; padding: 11px 20px; border-radius: 7px; cursor: pointer; font-weight: bold; font-family: Verdana, Geneva, sans-serif; transition: 0.2s; white-space: nowrap; height: 42px; }
+        .btn-buscar:hover { background: #1a252f; }
+
+        /* Resumo do confronto */
+        .confronto-header { text-align: center; padding: 10px 0 6px; border-bottom: 2px solid #000; margin-bottom: 14px; }
+        .confronto-header h3 { margin: 0 0 4px; font-size: 13pt; }
+        .confronto-header p  { margin: 0; color: var(--gray); font-size: 8pt; }
+
+        /* Card de cada partida */
+        .partida-card { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 18px; overflow: hidden; }
+        .partida-card-header {
+            background: var(--primary); color: white;
+            padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .partida-card-header .ph-left { font-size: 9pt; }
+        .partida-card-header .ph-escore { font-size: 16pt; font-weight: bold; letter-spacing: 2px; }
+        .partida-card-header .ph-right { font-size: 9pt; text-align: right; }
+
+        .partida-card-body { padding: 12px 14px; }
+
+        .duas-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        .col-titulo { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: var(--gray); margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+
+        /* Gols */
+        .gol-item { font-size: 9pt; padding: 3px 0; border-bottom: 1px solid #f5f5f5; }
+        .gol-item:last-child { border-bottom: none; }
+        .gol-badge { background: var(--gold); color: #000; padding: 1px 7px; border-radius: 8px; font-size: 8pt; font-weight: bold; margin-right: 6px; }
+        .sem-gols { color: var(--gray); font-style: italic; font-size: 8pt; }
+
+        /* Escalação */
+        .jogador-item { font-size: 9pt; padding: 3px 0; border-bottom: 1px solid #f5f5f5; display: flex; gap: 6px; }
+        .jogador-item:last-child { border-bottom: none; }
+        .jog-id { color: var(--gray); font-size: 8pt; font-weight: bold; min-width: 28px; }
+        .sem-escalacao { color: var(--gray); font-style: italic; font-size: 8pt; }
+
+        /* badges info */
+        .info-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .info-badge { background: #f0f0f0; border: 1px solid #ddd; padding: 3px 10px; border-radius: 10px; font-size: 8pt; }
+
+        .status-F { color: var(--success); font-weight: bold; }
+        .status-P { color: #e67e22; font-weight: bold; }
+
+        .status-msg { text-align: center; padding: 40px; color: var(--gray); font-style: italic; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .container { max-width: 100%; }
+            .card:first-child { display: none; }
+            .card { box-shadow: none; border-radius: 0; padding: 10px 0; }
+            .partida-card { page-break-inside: avoid; }
+            .partida-card-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="card">
+        <div class="header">
+            <h2>🆚 Histórico de Confrontos</h2>
+            <button class="btn-voltar" onclick="voltarMenu()">Voltar</button>
+        </div>
+    </div>
+
+    <!-- BUSCA -->
+    <div class="card">
+        <div class="secao-titulo">Buscar Equipes</div>
+        <div class="busca-grid">
+            <div>
+                <label>Código da Equipe A</label>
+                <input type="number" id="input_equipe_a" placeholder="ID da equipe..." min="1"
+                    oninput="previewEquipe('a')" onkeydown="if(event.key==='Enter') buscarConfrontos()">
+                <div class="nome-preview" id="preview_a"></div>
+            </div>
+            <div>
+                <label>Código da Equipe B</label>
+                <input type="number" id="input_equipe_b" placeholder="ID da equipe..." min="1"
+                    oninput="previewEquipe('b')" onkeydown="if(event.key==='Enter') buscarConfrontos()">
+                <div class="nome-preview" id="preview_b"></div>
+            </div>
+            <button class="btn-buscar" onclick="buscarConfrontos()">🔍 Buscar</button>
+        </div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="resultado">
+        <div class="card"><div class="status-msg">Digite os códigos das duas equipes para ver o histórico de confrontos.</div></div>
+    </div>
+
+</div>
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessaoAtual = null;
+let equipeCache = {}; // id → nome
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const at = params.get('access_token');
+    const rt = params.get('refresh_token');
+
+    if (at && rt) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: at, refresh_token: rt });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+}
+
+// Preview do nome da equipe enquanto digita
+async function previewEquipe(lado) {
+    const id  = document.getElementById(`input_equipe_${lado}`).value.trim();
+    const div = document.getElementById(`preview_${lado}`);
+    if (!id) { div.textContent = ''; div.className = 'nome-preview'; return; }
+
+    if (equipeCache[id]) {
+        div.textContent = equipeCache[id];
+        div.className = 'nome-preview ok';
+        return;
+    }
+
+    const { data } = await supabaseClient
+        .from('campeonato_equipe')
+        .select('id_equipe, nome_equipe')
+        .eq('id_equipe', id)
+        .single();
+
+    if (data) {
+        equipeCache[id] = data.nome_equipe;
+        div.textContent = data.nome_equipe;
+        div.className   = 'nome-preview ok';
+    } else {
+        div.textContent = 'Equipe não encontrada';
+        div.className   = 'nome-preview err';
+    }
+}
+
+// ─── BUSCA PRINCIPAL ──────────────────────────────────────────────
+async function buscarConfrontos() {
+    const idA = document.getElementById('input_equipe_a').value.trim();
+    const idB = document.getElementById('input_equipe_b').value.trim();
+    const res = document.getElementById('resultado');
+
+    if (!idA || !idB) { alert('Preencha os códigos das duas equipes!'); return; }
+    if (idA === idB)   { alert('As equipes devem ser diferentes!'); return; }
+
+    res.innerHTML = '<div class="card"><div class="status-msg">Buscando confrontos...</div></div>';
+
+    // 1. Busca partidas entre as duas equipes (em qualquer combinação mandante/visitante)
+    const { data: partidas, error } = await supabaseClient
+        .from('campeonato_partida')
+        .select(`
+            id_partida, grupo, status, gols_a, gols_b, data_partida, id_competicao,
+            equipe_a:campeonato_equipe!campeonato_partida_id_equipe_a_fkey(id_equipe, nome_equipe),
+            equipe_b:campeonato_equipe!campeonato_partida_id_equipe_b_fkey(id_equipe, nome_equipe),
+            campeonato_competicao(competicao)
+        `)
+        .or(`and(id_equipe_a.eq.${idA},id_equipe_b.eq.${idB}),and(id_equipe_a.eq.${idB},id_equipe_b.eq.${idA})`)
+        .order('data_partida', { ascending: false });
+
+    if (error) { res.innerHTML = `<div class="card"><div class="status-msg">Erro: ${error.message}</div></div>`; return; }
+    if (!partidas || partidas.length === 0) {
+        res.innerHTML = '<div class="card"><div class="status-msg">Nenhum confronto encontrado entre estas equipes.</div></div>';
+        return;
+    }
+
+    const nomeA = partidas[0].equipe_a?.id_equipe == idA
+        ? partidas[0].equipe_a?.nome_equipe
+        : partidas[0].equipe_b?.nome_equipe;
+    const nomeB = partidas[0].equipe_a?.id_equipe == idB
+        ? partidas[0].equipe_a?.nome_equipe
+        : partidas[0].equipe_b?.nome_equipe;
+
+    // 2. Busca todos os gols das partidas encontradas
+    const idsPartidas = partidas.map(p => p.id_partida);
+    const { data: gols } = await supabaseClient
+        .from('campeonato_gol')
+        .select('partida, gol_marcado, campeonato_jogador(id_jogador, nome_jogador)')
+        .in('partida', idsPartidas);
+
+    // Mapa: partidaId → [{ nome, gols }]
+    const mapaGols = {};
+    if (gols) {
+        gols.forEach(g => {
+            if (!mapaGols[g.partida]) mapaGols[g.partida] = [];
+            mapaGols[g.partida].push({
+                nome: g.campeonato_jogador?.nome_jogador || '?',
+                gols: g.gol_marcado || 0
+            });
+        });
+    }
+
+    // 3. Para cada partida, busca a escalação de cada equipe na data do jogo
+    //    Critério: vínculo com data_entrada <= data_partida, pegando o mais recente por jogador
+    //    Se o jogador trocou de equipe antes da partida, só o vínculo vigente conta
+    const mapaEscalacao = {}; // partidaId_equipeId → [{ id, nome }]
+
+    for (const p of partidas) {
+        const dataJogo = p.data_partida;
+        const eqIds    = [p.equipe_a?.id_equipe, p.equipe_b?.id_equipe].filter(Boolean);
+
+        for (const eqId of eqIds) {
+            // Busca todos os vínculos de jogadores desta equipe com data_entrada <= data do jogo
+            const { data: vinculos } = await supabaseClient
+                .from('campeonato_vinculo')
+                .select('numero_jogador, numero_equipe, data_entrada, campeonato_jogador(id_jogador, nome_jogador)')
+                .eq('numero_equipe', eqId)
+                .lte('data_entrada', dataJogo)
+                .order('data_entrada', { ascending: false });
+
+            if (!vinculos) continue;
+
+            // Para cada jogador, verifica se o vínculo mais recente até a data do jogo
+            // ainda é com esta equipe (não trocou para outra antes do jogo)
+            const jogadoresNaData = {};
+            for (const v of vinculos) {
+                const jId = v.numero_jogador;
+                if (jogadoresNaData[jId]) continue; // já processou este jogador
+
+                // Verifica se existe vínculo mais recente com OUTRA equipe antes da data do jogo
+                const { data: vinculoMaisRecente } = await supabaseClient
+                    .from('campeonato_vinculo')
+                    .select('numero_equipe')
+                    .eq('numero_jogador', jId)
+                    .lte('data_entrada', dataJogo)
+                    .order('data_entrada', { ascending: false })
+                    .limit(1);
+
+                if (vinculoMaisRecente && vinculoMaisRecente.length > 0) {
+                    const equipeNaData = vinculoMaisRecente[0].numero_equipe;
+                    if (parseInt(equipeNaData) === parseInt(eqId)) {
+                        // Jogador estava nesta equipe na data do jogo
+                        jogadoresNaData[jId] = {
+                            id:   v.campeonato_jogador?.id_jogador,
+                            nome: v.campeonato_jogador?.nome_jogador || '?'
+                        };
+                    }
+                }
+                // Marca como processado independente do resultado
+                if (!jogadoresNaData[jId]) jogadoresNaData[jId] = null;
+            }
+
+            mapaEscalacao[`${p.id_partida}_${eqId}`] = Object.values(jogadoresNaData)
+                .filter(Boolean)
+                .sort((a, b) => a.nome.localeCompare(b.nome));
+        }
+    }
+
+    // 4. Monta o HTML
+    const fmt = dt => dt
+        ? new Date(dt).toLocaleDateString('pt-br', { day:'2-digit', month:'2-digit', year:'numeric' })
+        : '—';
+
+    // Resumo geral: vitórias/empates/derrotas do ponto de vista da equipe A (idA)
+    let vA = 0, vB = 0, emp = 0;
+    partidas.forEach(p => {
+        const aEhMandante = p.equipe_a?.id_equipe == idA;
+        const golsEquipeA = aEhMandante ? p.gols_a : p.gols_b;
+        const golsEquipeB = aEhMandante ? p.gols_b : p.gols_a;
+        if (p.status !== 'Finalizado') return;
+        if (golsEquipeA > golsEquipeB) vA++;
+        else if (golsEquipeA < golsEquipeB) vB++;
+        else emp++;
+    });
+
+    let html = `
+        <div class="card">
+            <div class="confronto-header">
+                <h3>${nomeA} × ${nomeB}</h3>
+                <p>${partidas.length} confronto${partidas.length !== 1 ? 's' : ''} encontrado${partidas.length !== 1 ? 's' : ''} &nbsp;|&nbsp;
+                   ${nomeA}: <strong>${vA}V</strong> &nbsp;
+                   Empates: <strong>${emp}</strong> &nbsp;
+                   ${nomeB}: <strong>${vB}V</strong>
+                </p>
+            </div>
+    `;
+
+    for (const p of partidas) {
+        const aEhMandante    = p.equipe_a?.id_equipe == idA;
+        const nomeEqA_card   = p.equipe_a?.nome_equipe || '?';
+        const nomeEqB_card   = p.equipe_b?.nome_equipe || '?';
+        const idEqA_card     = p.equipe_a?.id_equipe;
+        const idEqB_card     = p.equipe_b?.id_equipe;
+        const statusClass    = p.status === 'Finalizado' ? 'status-F' : 'status-P';
+        const escore         = p.status === 'Finalizado' ? `${p.gols_a ?? '—'} × ${p.gols_b ?? '—'}` : '— × —';
+
+        // Gols desta partida
+        const golsPartida = mapaGols[p.id_partida] || [];
+        const golsHtml = golsPartida.length > 0
+            ? golsPartida.map(g => `
+                <div class="gol-item">
+                    <span class="gol-badge">${g.gols} ⚽</span>${g.nome}
+                </div>`).join('')
+            : '<div class="sem-gols">Nenhum gol registrado</div>';
+
+        // Escalação equipe A (card)
+        const escA = mapaEscalacao[`${p.id_partida}_${idEqA_card}`] || [];
+        const escAHtml = escA.length > 0
+            ? escA.map(j => `<div class="jogador-item"><span class="jog-id">${j.id}</span>${j.nome}</div>`).join('')
+            : '<div class="sem-escalacao">Sem escalação registrada</div>';
+
+        // Escalação equipe B (card)
+        const escB = mapaEscalacao[`${p.id_partida}_${idEqB_card}`] || [];
+        const escBHtml = escB.length > 0
+            ? escB.map(j => `<div class="jogador-item"><span class="jog-id">${j.id}</span>${j.nome}</div>`).join('')
+            : '<div class="sem-escalacao">Sem escalação registrada</div>';
+
+        html += `
+            <div class="partida-card">
+                <div class="partida-card-header">
+                    <div class="ph-left">
+                        <strong>${nomeEqA_card}</strong><br>
+                        <span style="font-size:8pt; opacity:0.8;">${p.campeonato_competicao?.competicao || '—'} · Grupo ${p.grupo || '—'}</span>
+                    </div>
+                    <div style="text-align:center;">
+                        <div class="ph-escore">${escore}</div>
+                        <div style="font-size:8pt; opacity:0.8;">${fmt(p.data_partida)} · #${p.id_partida}</div>
+                        <div class="${statusClass}" style="font-size:8pt;">${p.status}</div>
+                    </div>
+                    <div class="ph-right">
+                        <strong>${nomeEqB_card}</strong><br>
+                        <span style="font-size:8pt; opacity:0.8;">&nbsp;</span>
+                    </div>
+                </div>
+
+                <div class="partida-card-body">
+                    <div class="col-titulo">⚽ Gols da Partida</div>
+                    <div style="margin-bottom:12px;">${golsHtml}</div>
+
+                    <div class="duas-colunas">
+                        <div>
+                            <div class="col-titulo">👥 Escalação — ${nomeEqA_card}</div>
+                            ${escAHtml}
+                        </div>
+                        <div>
+                            <div class="col-titulo">👥 Escalação — ${nomeEqB_card}</div>
+                            ${escBHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    res.innerHTML = html;
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>

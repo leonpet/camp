@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD Fases</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary:#2c3e50; --accent:#3498db; --success:#27ae60; --danger:#e74c3c; --gray:#7f8c8d; --bg:#f0f2f5; }
+        * { box-sizing: border-box; }
+        body { font-family: Verdana, Geneva, sans-serif; background: var(--bg); margin: 0; padding: 20px; font-size: 10pt; }
+        .container { max-width: 600px; margin: auto; }
+
+        .card { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 16px; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 13pt; }
+        .btn-voltar { background: white; color: var(--accent); border: 1px solid var(--accent); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: Verdana; transition: 0.2s; }
+        .btn-voltar:hover { background: var(--accent); color: white; }
+
+        .secao-titulo { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: var(--accent); letter-spacing: 1px; margin: 0 0 12px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+
+        .form-row { display: flex; gap: 10px; align-items: center; }
+        .form-row input { flex: 1; padding: 11px; border: 2px solid #ddd; border-radius: 7px; font-size: 10pt; font-family: Verdana; outline: none; }
+        .form-row input:focus { border-color: var(--accent); }
+
+        button { cursor: pointer; border: none; border-radius: 7px; font-weight: bold; font-family: Verdana; padding: 11px 20px; font-size: 10pt; transition: 0.2s; color: white; }
+        .btn-add    { background: var(--accent); }
+        .btn-add:hover { background: #2179b0; }
+        .btn-save   { background: var(--success); }
+        .btn-save:hover { background: #1e8449; }
+        .btn-cancel { background: var(--gray); }
+        .btn-cancel:hover { background: #7d8b8e; }
+        .btn-edit   { background: var(--accent); padding: 5px 12px; font-size: 9pt; }
+        .btn-edit:hover { background: #2179b0; }
+        .btn-del    { background: var(--danger); padding: 5px 12px; font-size: 9pt; }
+        .btn-del:hover { background: #a93226; }
+
+        .search-box input { width: 100%; padding: 11px; border: 2px solid #eee; border-radius: 7px; font-family: Verdana; font-size: 10pt; outline: none; }
+        .search-box input:focus { border-color: var(--accent); }
+
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #eee; transition: 0.15s; }
+        .list-item:hover { background: #f8f9fa; }
+        .list-item:last-child { border-bottom: none; }
+        .item-info { line-height: 1.5; }
+        .item-id   { color: var(--gray); font-size: 8pt; font-weight: bold; }
+        .item-nome { font-weight: bold; font-size: 10pt; }
+        .item-acoes { display: flex; gap: 6px; }
+
+        .status-msg { text-align: center; padding: 30px; color: var(--gray); font-style: italic; font-size: 9pt; }
+        .msg { text-align: center; padding: 8px; border-radius: 6px; font-weight: bold; margin-top: 10px; display: none; font-size: 9pt; }
+        .msg.ok   { background: #d4edda; color: #155724; display: block; }
+        .msg.erro { background: #f8d7da; color: #721c24; display: block; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="card">
+        <div class="header">
+            <h2>📌 Fases</h2>
+            <button class="btn-voltar" onclick="voltarMenu()">Voltar</button>
+        </div>
+    </div>
+
+    <!-- FORMULÁRIO -->
+    <div class="card">
+        <div class="secao-titulo" id="form-titulo">Nova Fase</div>
+        <input type="hidden" id="id_fase_hidden">
+        <div class="form-row">
+            <input type="text" id="input_fase" placeholder="Nome da fase (ex: Grupos, Oitavas, Semi...)"
+                onkeydown="if(event.key==='Enter') salvar()">
+            <button class="btn-add" id="btn-principal" onclick="salvar()">Adicionar</button>
+            <button class="btn-cancel" id="btn-cancelar" style="display:none;" onclick="cancelarEdicao()">Cancelar</button>
+        </div>
+        <div class="msg" id="msg-form"></div>
+    </div>
+
+    <!-- BUSCA + LISTA -->
+    <div class="card">
+        <div class="secao-titulo">Fases Cadastradas</div>
+        <div class="search-box" style="margin-bottom:12px;">
+            <input type="text" id="input_busca" placeholder="🔍 Filtrar fases..." onkeyup="filtrar()">
+        </div>
+        <div id="status-lista" class="status-msg">Carregando...</div>
+        <div id="lista-fases"></div>
+    </div>
+
+</div>
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessaoAtual = null;
+let listaCache  = [];
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const at = params.get('access_token');
+    const rt = params.get('refresh_token');
+
+    if (at && rt) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: at, refresh_token: rt });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+    carregar();
+}
+
+async function carregar() {
+    const { data, error } = await supabaseClient
+        .from('campeonato_fase')
+        .select('*')
+        .order('fase');
+
+    const status = document.getElementById('status-lista');
+    if (error) { status.textContent = 'Erro ao carregar: ' + error.message; return; }
+
+    listaCache = data || [];
+    exibir(listaCache);
+}
+
+function exibir(dados) {
+    const lista  = document.getElementById('lista-fases');
+    const status = document.getElementById('status-lista');
+
+    if (dados.length === 0) {
+        status.textContent = 'Nenhuma fase cadastrada.';
+        lista.innerHTML = '';
+        return;
+    }
+
+    status.textContent = '';
+    lista.innerHTML = dados.map(f => `
+        <div class="list-item">
+            <div class="item-info">
+                <div class="item-id">#${f.id_fase}</div>
+                <div class="item-nome">${f.fase}</div>
+            </div>
+            <div class="item-acoes">
+                <button class="btn-edit" onclick="editar(${f.id_fase}, '${f.fase.replace(/'/g, "\\'")}')">Editar</button>
+                <button class="btn-del"  onclick="excluir(${f.id_fase})">Excluir</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filtrar() {
+    const termo = document.getElementById('input_busca').value.toLowerCase();
+    exibir(listaCache.filter(f => f.fase.toLowerCase().includes(termo)));
+}
+
+async function salvar() {
+    const id   = document.getElementById('id_fase_hidden').value;
+    const fase = document.getElementById('input_fase').value.trim();
+    const msg  = document.getElementById('msg-form');
+
+    if (!fase) { msg.textContent = 'Digite o nome da fase!'; msg.className = 'msg erro'; return; }
+
+    msg.className = 'msg';
+
+    if (id) {
+        // Editar
+        const { error } = await supabaseClient
+            .from('campeonato_fase')
+            .update({ fase })
+            .eq('id_fase', id);
+
+        if (error) { msg.textContent = 'Erro ao salvar: ' + error.message; msg.className = 'msg erro'; return; }
+    } else {
+        // Inserir
+        const { error } = await supabaseClient
+            .from('campeonato_fase')
+            .insert([{ fase }]);
+
+        if (error) { msg.textContent = 'Erro ao salvar: ' + error.message; msg.className = 'msg erro'; return; }
+    }
+
+    msg.textContent = id ? 'Fase atualizada!' : 'Fase adicionada!';
+    msg.className = 'msg ok';
+    setTimeout(() => { msg.className = 'msg'; }, 2000);
+
+    cancelarEdicao();
+    carregar();
+}
+
+function editar(id, fase) {
+    document.getElementById('id_fase_hidden').value = id;
+    document.getElementById('input_fase').value     = fase;
+    document.getElementById('input_fase').focus();
+    document.getElementById('form-titulo').textContent   = 'Editar Fase';
+    document.getElementById('btn-principal').textContent = 'Salvar';
+    document.getElementById('btn-principal').className   = 'btn-save';
+    document.getElementById('btn-cancelar').style.display = 'inline-block';
+}
+
+function cancelarEdicao() {
+    document.getElementById('id_fase_hidden').value = '';
+    document.getElementById('input_fase').value     = '';
+    document.getElementById('form-titulo').textContent   = 'Nova Fase';
+    document.getElementById('btn-principal').textContent = 'Adicionar';
+    document.getElementById('btn-principal').className   = 'btn-add';
+    document.getElementById('btn-cancelar').style.display = 'none';
+}
+
+async function excluir(id) {
+    if (!confirm('Deseja excluir esta fase?')) return;
+
+    const { error } = await supabaseClient
+        .from('campeonato_fase')
+        .delete()
+        .eq('id_fase', id);
+
+    if (error) { alert('Erro ao excluir: ' + error.message); return; }
+    carregar();
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>

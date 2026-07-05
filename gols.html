@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Artilharia - Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary:#3498db; --success:#27ae60; --danger:#e74c3c; --dark:#2c3e50; --gold:#f1c40f; }
+        body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; }
+        .container { max-width:800px; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-voltar { color: var(--primary); font-weight: bold; border: 1px solid var(--primary); padding: 5px 12px; border-radius: 5px; transition: 0.3s; cursor: pointer; background: white; }
+        .btn-voltar:hover { background: var(--primary); color: white; }
+        .form-box { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid var(--gold); }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 80px; gap: 10px; margin-bottom: 10px; }
+        select, input { padding: 10px; border-radius: 5px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
+        .search-box { margin-bottom: 15px; position: relative; }
+        .search-box input { border: 2px solid var(--primary); background: #fff; padding-left: 35px; }
+        .search-box::before { content: "🔍"; position: absolute; left: 10px; top: 10px; }
+        .actions { display: flex; gap: 10px; justify-content: flex-end; }
+        button { cursor: pointer; border: none; border-radius: 5px; color: white; font-weight: bold; padding: 10px 20px; transition: 0.2s; }
+        .btn-add    { background: var(--success); }
+        .btn-update { background: var(--primary); display: none; }
+        .btn-cancel { background: #95a5a6; display: none; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
+        .gol-info { line-height: 1.5; }
+        .gol-id-label { color: #999; font-size: 11px; font-weight: normal; }
+        .gol-count { background: var(--gold); color: var(--dark); padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 14px; margin-right: 10px; }
+        .btn-del { background: var(--danger); padding: 5px 10px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0;">⚽ Registro de Gols</h2>
+        <button class="btn-voltar" onclick="voltarMenu()">⬅ Painel</button>
+    </div>
+
+    <div class="form-box">
+        <input type="hidden" id="id_gol_hidden">
+        <div class="form-grid">
+            <div>
+                <label style="font-size:12px; font-weight:bold;">Partida</label>
+                <select id="select_partida"></select>
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:bold;">Jogador</label>
+                <select id="select_jogador"></select>
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:bold;">Qtd</label>
+                <input type="number" id="qtd_gols" value="1" min="1">
+            </div>
+        </div>
+        <div class="actions">
+            <button id="btn_cancelar" class="btn-cancel" onclick="limparFormulario()">Cancelar</button>
+            <button id="btn_cadastrar" class="btn-add"    onclick="salvarGol()">Registrar Gol</button>
+            <button id="btn_atualizar" class="btn-update" onclick="salvarGol()">Atualizar</button>
+        </div>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="input_pesquisa" placeholder="Pesquisar por Nome do Jogador ou ID..." onkeyup="filtrarGols()">
+    </div>
+
+    <div id="status-msg" style="text-align:center; color:#666;">Verificando autenticação...</div>
+    <div id="lista-gols"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let todosGols   = [];
+let sessaoAtual = null;
+
+function voltarMenu() {
+    if (sessaoAtual) {
+        window.location.href = `menu.html#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    } else {
+        window.location.href = "index.html";
+    }
+}
+
+async function verificarAcesso() {
+    const hash   = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+        const { data, error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error || !data.session) { window.location.href = "index.html"; return; }
+        sessaoAtual = data.session;
+    } else {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return; }
+        sessaoAtual = session;
+    }
+
+    inicializar();
+}
+
+async function inicializar() {
+    document.getElementById('status-msg').innerText = "Carregando seletores...";
+
+    const { data: jogadores } = await supabaseClient.from('campeonato_jogador').select('*').order('nome_jogador');
+    const selJog = document.getElementById('select_jogador');
+    selJog.innerHTML = '<option value="">Selecione o Jogador...</option>';
+    if (jogadores) jogadores.forEach(j => selJog.innerHTML += `<option value="${j.id_jogador}">${j.id_jogador} - ${j.nome_jogador}</option>`);
+
+    const { data: partidas } = await supabaseClient
+        .from('campeonato_partida')
+        .select('id_partida, time_a:id_equipe_a(nome_equipe), time_b:id_equipe_b(nome_equipe)')
+        .order('id_partida', { ascending: false });
+
+    const selPart = document.getElementById('select_partida');
+    selPart.innerHTML = '<option value="">Selecione a Partida...</option>';
+    if (partidas) partidas.forEach(p => {
+        const nomeA = p.time_a?.nome_equipe || "Time A";
+        const nomeB = p.time_b?.nome_equipe || "Time B";
+        selPart.innerHTML += `<option value="${p.id_partida}">Jogo ${p.id_partida}: ${nomeA} x ${nomeB}</option>`;
+    });
+
+    carregarGols();
+}
+
+async function carregarGols() {
+    const status = document.getElementById('status-msg');
+    const { data, error } = await supabaseClient
+        .from('campeonato_gol')
+        .select(`
+            *,
+            campeonato_jogador(id_jogador, nome_jogador),
+            campeonato_partida(id_partida, id_equipe_a(nome_equipe), id_equipe_b(nome_equipe))
+        `)
+        .order('id-gol', { ascending: false });
+
+    if (error) { status.innerText = "Erro ao carregar gols: " + error.message; return; }
+
+    todosGols = data;
+    exibirLista(todosGols);
+}
+
+function exibirLista(listaDados) {
+    const listaHtml = document.getElementById('lista-gols');
+    const status    = document.getElementById('status-msg');
+
+    status.innerText = listaDados.length === 0 ? "Nenhum registro de gol encontrado." : "";
+    listaHtml.innerHTML = "";
+
+    listaDados.forEach(g => {
+        const div     = document.createElement('div');
+        div.className = 'list-item';
+        const jogo    = g.campeonato_partida || {};
+        const jogador = g.campeonato_jogador || { nome_jogador: "Desconhecido", id_jogador: "?" };
+        const nomeA   = jogo.id_equipe_a?.nome_equipe || "T1";
+        const nomeB   = jogo.id_equipe_b?.nome_equipe || "T2";
+
+        div.innerHTML = `
+            <div class="gol-info">
+                <span class="gol-id-label">Registro: ${g['id-gol']} | Jogador ID: ${jogador.id_jogador}</span><br>
+                <span class="gol-count">${g.gol_marcado} Gols</span>
+                <strong>${jogador.nome_jogador}</strong><br>
+                <small>No jogo ${jogo.id_partida || '?'}: ${nomeA} x ${nomeB}</small>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <button style="background:var(--primary); padding:5px 10px; font-size:12px;" onclick='prepararEdicao(${JSON.stringify(g)})'>Editar</button>
+                <button class="btn-del" onclick="excluirGol(${g['id-gol']})">Excluir</button>
+            </div>
+        `;
+        listaHtml.appendChild(div);
+    });
+}
+
+function filtrarGols() {
+    const termo = document.getElementById('input_pesquisa').value.toLowerCase();
+    const filtrados = todosGols.filter(g => {
+        const nome  = g.campeonato_jogador?.nome_jogador?.toLowerCase() || "";
+        const idJog = (g.jogador || "").toString();
+        const idReg = (g['id-gol'] || "").toString();
+        return nome.includes(termo) || idJog.includes(termo) || idReg.includes(termo);
+    });
+    exibirLista(filtrados);
+}
+
+async function salvarGol() {
+    const id = document.getElementById('id_gol_hidden').value;
+    const dados = {
+        jogador:     document.getElementById('select_jogador').value,
+        partida:     document.getElementById('select_partida').value,
+        gol_marcado: parseInt(document.getElementById('qtd_gols').value) || 1
+    };
+
+    if (!dados.jogador || !dados.partida) return alert("Selecione o jogador e a partida!");
+
+    const res = id
+        ? await supabaseClient.from('campeonato_gol').update(dados).eq('id-gol', id)
+        : await supabaseClient.from('campeonato_gol').insert([dados]);
+
+    if (res.error) alert("Erro ao salvar: " + res.error.message);
+    else { limparFormulario(); carregarGols(); }
+}
+
+function prepararEdicao(g) {
+    document.getElementById('id_gol_hidden').value   = g['id-gol'];
+    document.getElementById('select_jogador').value  = g.jogador;
+    document.getElementById('select_partida').value  = g.partida;
+    document.getElementById('qtd_gols').value        = g.gol_marcado;
+    document.getElementById('btn_cadastrar').style.display = 'none';
+    document.getElementById('btn_atualizar').style.display = 'inline-block';
+    document.getElementById('btn_cancelar').style.display  = 'inline-block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function limparFormulario() {
+    document.getElementById('id_gol_hidden').value  = "";
+    document.getElementById('select_jogador').value = "";
+    document.getElementById('select_partida').value = "";
+    document.getElementById('qtd_gols').value       = "1";
+    document.getElementById('btn_cadastrar').style.display = 'inline-block';
+    document.getElementById('btn_atualizar').style.display = 'none';
+    document.getElementById('btn_cancelar').style.display  = 'none';
+}
+
+async function excluirGol(id) {
+    if (!confirm("Excluir este registro de gol?")) return;
+    const { error } = await supabaseClient.from('campeonato_gol').delete().eq('id-gol', id);
+    if (error) alert("Erro ao excluir: " + error.message);
+    else carregarGols();
+}
+
+verificarAcesso();
+</script>
+</body>
+</html>
