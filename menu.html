@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Campeonato</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary:#2c3e50; --accent:#3498db; --success:#27ae60;
+            --danger:#e74c3c; --gray:#95a5a6; --gold:#f39c12;
+            --purple:#9b59b6; --orange:#e67e22; --dark:#1a252f;
+            --teal:#1abc9c; --red:#c0392b;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: Verdana, Geneva, sans-serif; background: #f0f2f5; padding: 16px; margin: 0; }
+        .container { max-width: 760px; margin: auto; }
+
+        /* Cabeçalho */
+        .top-bar { background: var(--primary); color: white; border-radius: 10px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .top-bar h2 { margin: 0; font-size: 13pt; }
+        #user-info { font-size: 8pt; opacity: 0.75; margin-top: 2px; }
+        .btn-logout { background: var(--danger); color: white; border: none; padding: 7px 14px; border-radius: 7px; cursor: pointer; font-size: 9pt; font-weight: bold; font-family: Verdana; }
+
+        /* Seção */
+        .section { margin-bottom: 20px; }
+        .section-header {
+            font-family: Verdana; font-size: 8pt; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: white; padding: 6px 14px; border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .sec-cadastro    { background: var(--primary); }
+        .sec-nova        { background: var(--teal); }
+        .sec-lancamento  { background: var(--orange); }
+        .sec-relatorio   { background: var(--accent); }
+
+        /* Grid de botões */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+        .nav-btn {
+            background: white; border: none; border-radius: 10px;
+            padding: 16px 10px 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            cursor: pointer; display: flex; flex-direction: column;
+            align-items: center; gap: 7px; transition: transform 0.15s, box-shadow 0.15s;
+            border-bottom: 4px solid transparent; text-decoration: none;
+        }
+        .nav-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); background: #fafafa; }
+        .nav-btn .icon  { font-size: 28px; line-height: 1; }
+        .nav-btn .label { font-size: 8pt; font-weight: bold; color: var(--primary); text-align: center; line-height: 1.3; }
+
+        .c-primary  { border-bottom-color: var(--primary); }
+        .c-teal     { border-bottom-color: var(--teal); }
+        .c-orange   { border-bottom-color: var(--orange); }
+        .c-accent   { border-bottom-color: var(--accent); }
+        .c-purple   { border-bottom-color: var(--purple); }
+        .c-gold     { border-bottom-color: var(--gold); }
+        .c-success  { border-bottom-color: var(--success); }
+        .c-red      { border-bottom-color: var(--red); }
+
+        @media (max-width: 480px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            .nav-btn .icon { font-size: 22px; }
+            .nav-btn .label { font-size: 7pt; }
+        }
+    </style>
+</head>
+<body style="display:none;">
+<div class="container">
+
+    <!-- TOPO -->
+    <div class="top-bar">
+        <div>
+            <h2>🏆 Painel do Campeonato</h2>
+            <div id="user-info">Verificando autenticação...</div>
+        </div>
+        <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+    </div>
+
+    <!-- CADASTRO -->
+    <div class="section">
+        <div class="section-header sec-cadastro">Cadastro</div>
+        <div class="grid">
+
+            <div class="nav-btn c-primary" onclick="navegar('competicoes.html')">
+                <span class="icon">🏆</span>
+                <span class="label">CRUD COMPETIÇÕES</span>
+            </div>
+
+            <div class="nav-btn c-primary" onclick="navegar('equipes.html')">
+                <span class="icon">🛡️</span>
+                <span class="label">CRUD EQUIPES</span>
+            </div>
+
+            <div class="nav-btn c-primary" onclick="navegar('jogadores.html')">
+                <span class="icon">🏃</span>
+                <span class="label">CRUD JOGADORES</span>
+            </div>
+
+            <div class="nav-btn c-purple" onclick="navegar('vinculos.html')">
+                <span class="icon">🔗</span>
+                <span class="label">VÍNCULO JOGADOR / EQUIPE</span>
+            </div>
+
+            <div class="nav-btn c-gold" onclick="navegar('gols.html')">
+                <span class="icon">🥅</span>
+                <span class="label">CRUD GOLS</span>
+            </div>
+
+            <div class="nav-btn c-primary" onclick="navegar('partidas.html')">
+                <span class="icon">⚽</span>
+                <span class="label">CRUD PARTIDAS</span>
+            </div>
+
+            <div class="nav-btn c-accent" onclick="navegar('fases.html')">
+                <span class="icon">📌</span>
+                <span class="label">CRUD FASES</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- NOVA COMPETIÇÃO -->
+    <div class="section">
+        <div class="section-header sec-nova">Nova Competição</div>
+        <div class="grid">
+
+            <div class="nav-btn c-teal" onclick="navegar('gerador_partidas.html')">
+                <span class="icon">📅</span>
+                <span class="label">GERADOR DE PARTIDAS</span>
+            </div>
+
+            <div class="nav-btn c-teal" onclick="navegar('inscricoes.html')">
+                <span class="icon">📝</span>
+                <span class="label">INSCRIÇÃO EQUIPE / COMPETIÇÃO / FASE</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- LANÇAMENTOS -->
+    <div class="section">
+        <div class="section-header sec-lancamento">Lançamentos</div>
+        <div class="grid">
+
+            <div class="nav-btn c-orange" onclick="navegar('lancamento.html')">
+                <span class="icon">📥</span>
+                <span class="label">INSERIR RESULTADO PARTIDA / GOLS</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- RELATÓRIO -->
+    <div class="section">
+        <div class="section-header sec-relatorio">Relatório</div>
+        <div class="grid">
+
+            <div class="nav-btn c-accent" onclick="navegar('gols_equipe.html')">
+                <span class="icon">📊</span>
+                <span class="label">GOLS POR EQUIPE</span>
+            </div>
+
+            <div class="nav-btn c-red" onclick="navegar('historico_confrontos.html')">
+                <span class="icon">🆚</span>
+                <span class="label">HISTÓRICO DE CONFRONTOS</span>
+            </div>
+
+            <div class="nav-btn c-success" onclick="navegar('qualificacao.html')">
+                <span class="icon">🎯</span>
+                <span class="label">RELATÓRIO DE CLASSIFICADOS</span>
+            </div>
+
+            <div class="nav-btn c-accent" onclick="navegar('relatorio_chave.html')">
+                <span class="icon">🖨️</span>
+                <span class="label">IMPRIMIR SÚMULA</span>
+            </div>
+
+            <div class="nav-btn c-gold" onclick="navegar('relatorio_classificacao.html')">
+                <span class="icon">📋</span>
+                <span class="label">RANKING GERAL DE PONTOS</span>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const SUPABASE_URL = "https://jumfigqlnqplbpokqhvj.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bWZpZ3FsbnFwbGJwb2txaHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyOTE1NzIsImV4cCI6MjAyODg2NzU3Mn0.oa9VZXbP0CefDeswtrGknD03f5AfO3JJsfVUF3HXLlE";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let sessaoAtual = null;
+
+    async function verificarAcesso() {
+        const hash   = window.location.hash.replace(/^#/, '');
+        const params = new URLSearchParams(hash);
+        const at = params.get('access_token');
+        const rt = params.get('refresh_token');
+
+        if (at && rt) {
+            const { data, error } = await supabaseClient.auth.setSession({ access_token: at, refresh_token: rt });
+            window.history.replaceState(null, '', window.location.pathname);
+            if (error || !data.session) { window.location.replace("index.html"); return; }
+            sessaoAtual = data.session;
+        } else {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.replace("index.html"); return; }
+            sessaoAtual = session;
+        }
+
+        document.getElementById("user-info").textContent = "Logado como: " + sessaoAtual.user.email;
+        document.body.style.display = "block";
+    }
+
+    function navegar(pagina) {
+        if (!sessaoAtual) return;
+        window.location.href = `${pagina}#access_token=${sessaoAtual.access_token}&refresh_token=${sessaoAtual.refresh_token}`;
+    }
+
+    async function fazerLogout() {
+        await supabaseClient.auth.signOut();
+        window.location.href = "index.html";
+    }
+
+    verificarAcesso();
+</script>
+</body>
+</html>
